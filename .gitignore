@@ -1,0 +1,8 @@
+auth_service_handler/__pycache__/
+robot_management/__pycache__/
+user_manage/__pycache__/
+auth_service_handler/migrations/__pycache__/
+user_manage/migrations/__pycache__/
+db.sqlite3
+.env
+venv/

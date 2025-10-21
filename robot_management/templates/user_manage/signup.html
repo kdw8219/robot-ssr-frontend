@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>signup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .signup-container {
+            background-color: #fff;
+            padding: 40px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            width: 400px;
+        }
+        h1 {
+            margin-bottom: 24px;
+            font-size: 24px;
+            text-align: center;
+            color: #333;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 10px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <h1>Sign up</h1>
+        <form method="POST" action="/signup/">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="ID" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <input type="email" name="email" placeholder="Email" required>
+
+            <label for="role">Role</label>
+            <select name="role" id="role" required>
+                <option value="">Choose</option>
+                <option value="admin">Administrator</option>
+                <option value="operator">Operator</option>
+                <option value="monitor">Monitor</option>
+            </select>
+
+            <button type="submit">Sign up</button>
+        </form>
+    </div>
+</body>
+</html>
