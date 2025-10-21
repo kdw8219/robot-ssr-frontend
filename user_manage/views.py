@@ -56,7 +56,7 @@ def login(request):
     
     return HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
 
-@jwt_required
+
 def index(request):
     return HttpResponse(HTMLRenderer(request,'user_manage/index.html', params={}))
 
