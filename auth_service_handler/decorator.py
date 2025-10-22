@@ -6,6 +6,12 @@ from functools import wraps
 from typing import Optional, Tuple, Dict
 
 def jwt_required(view_func):
+    async def get_access_token(request) -> Optional[str]:
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        if auth_header.startswith('Bearer '):
+            return auth_header[7:]
+        return None
+    
     async def validate_token(client: httpx.AsyncClient, token: str) -> Tuple[bool, Optional[Dict]]:
         """토큰 유효성 검증"""
         load_dotenv()
@@ -29,12 +35,20 @@ def jwt_required(view_func):
         
         try:
             #Auth Service에 토큰 갱신 요층
+            cookies = {
+                'refresh_token': refresh_token,
+                'httponly':True,
+                'secure':True,
+                'samesite':"Lax"
+                }
             response = await client.post(
                 f'{auth_url}/token/refresh/',
-                json={'refresh_token': refresh_token}
+                cookies,
+                json={'request': 'new_tokens'}
             )
             if response.status_code == 200:
-                return response.json()
+                return {'access_token' : get_access_token(response) ,'refresh_token': response.cookies.get('refresh_token')}
+                
             return None
         except Exception:
             return None
@@ -76,9 +90,10 @@ def jwt_required(view_func):
             
             # 새 토큰을 쿠키에 설정 -> 이건 Refresh Token에서만.
             # 수정 필요 
+            response.set_header('Authorization', f"Bearer {new_tokens['access_token']}")
             response.set_cookie(
-                'access_token',
-                new_tokens['access_token'],
+                'refresh_token',
+                new_tokens['refresh_token'],
                 httponly=True,
                 secure=True,
                 samesite='Strict'
