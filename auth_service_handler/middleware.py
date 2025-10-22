@@ -6,34 +6,25 @@ from jwt import ExpiredSignatureError
 class JWTMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
+        
+        # 인증이 필요 없는 path
+        self.public_paths = [
+            '',
+            '/login/',
+            '/signup/',
+        ]
 
     def __call__(self, request):
+        
+        if request.path in self.public_paths:
+            return self.get_response(request)
+        
         # 1. Access Token 가져오기 (Cookie 또는 Header)
         token = request.COOKIES.get('access_token') or request.headers.get('Authorization', '').replace('Bearer ', '')
         
+        # 2. 토큰이 없다면 401 Unauthorized 반환. 기본적으로 access token이 없으면 안됨. 오히려 refresh token이 optional
         if not token:
             return JsonResponse({'detail': 'Unauthorized'}, status=401)
-
-        # 2. JWT 파싱
-        try:
-            payload = decode_jwt(token)
-            request.user = payload  # SSR에서 template context로 활용 가능
-        except ExpiredSignatureError:
-            # Access Token 만료 시 Refresh Token 사용
-            refresh_token = request.COOKIES.get('refresh_token')
-            if refresh_token:
-                try:
-                    new_token = refresh_jwt(refresh_token)
-                    request.user = decode_jwt(new_token)
-                    response = self.get_response(request)
-                    response.set_cookie('access_token', new_token, httponly=True)
-                    return response
-                except Exception:
-                    return JsonResponse({'detail': 'Unauthorized'}, status=401)
-            else:
-                return JsonResponse({'detail': 'Unauthorized'}, status=401)
-        except Exception:
-            return JsonResponse({'detail': 'Invalid token'}, status=401)
 
         # 3. 요청 처리
         response = self.get_response(request)

@@ -1,26 +1,89 @@
 from django.http import JsonResponse
-import jwt
 from dotenv import load_dotenv
 import os
+import httpx
+from functools import wraps
+from typing import Optional, Tuple, Dict
 
 def jwt_required(view_func):
+    async def validate_token(client: httpx.AsyncClient, token: str) -> Tuple[bool, Optional[Dict]]:
+        """토큰 유효성 검증"""
+        load_dotenv()
+        auth_url = os.getenv('AUTH_SERVICE_URL')
+        
+        try:
+            response = await client.post(
+                f'{auth_url}/token/validate/',
+                json={'token': token}
+            )
+            if response.status_code == 200:
+                return True, response.json()
+            return False, None
+        except Exception:
+            return False, None
 
-    def _wrapped_view(request, *args, **kwargs):
-        token = request.META.get('HTTP_AUTHORIZATION', None)
+    async def refresh_tokens(client: httpx.AsyncClient, refresh_token: str) -> Optional[Dict]:
+        # service url 획득
+        load_dotenv()
+        auth_url = os.getenv('AUTH_SERVICE_URL')
+        
+        try:
+            #Auth Service에 토큰 갱신 요층
+            response = await client.post(
+                f'{auth_url}/token/refresh/',
+                json={'refresh_token': refresh_token}
+            )
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except Exception:
+            return None
+
+    @wraps(view_func)
+    async def _wrapped_view(request, *args, **kwargs):
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        token = None
+        
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
         if token is None:
             return JsonResponse({'error': 'Authorization header missing'}, status=401)
 
-        load_dotenv()
-        SECRET_KEY = os.getenv('SECRET_KEY')
+        async with httpx.AsyncClient() as client:
+            # 액세스 토큰 검증
+            is_valid, payload = await validate_token(client, token)
+            
+            if is_valid:
+                # 토큰이 유효하면 페이로드 설정하고 진행
+                request.user_id = payload.get('user_id')
+                response = await view_func(request, *args, **kwargs)
+                return response
+            
+            # 액세스 토큰이 만료된 경우, 리프레시 토큰으로 갱신 시도
+            refresh_token = request.COOKIES.get('refresh_token')
+            if not refresh_token:
+                return JsonResponse({'error': 'Refresh token missing'}, status=401)
+            
+            # 새 토큰 발급 시도
+            new_tokens = await refresh_tokens(client, refresh_token)
+            if not new_tokens:
+                return JsonResponse({'error': 'Failed to refresh tokens'}, status=401)
+            
+            # 새 토큰으로 요청 처리
+            request.user_id = new_tokens.get('user_id')
+            response = await view_func(request, *args, **kwargs)
+            
+            # 새 토큰을 쿠키에 설정 -> 이건 Refresh Token에서만.
+            # 수정 필요 
+            response.set_cookie(
+                'access_token',
+                new_tokens['access_token'],
+                httponly=True,
+                secure=True,
+                samesite='Strict'
+            )
+            
+            return response
         
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-            request.user_id = payload['user_id']
-        except jwt.ExpiredSignatureError:
-            return JsonResponse({'error': 'Token has expired'}, status=401)
-        except jwt.InvalidTokenError:
-            return JsonResponse({'error': 'Invalid token'}, status=401)
-
-        return view_func(request, *args, **kwargs)
-
     return _wrapped_view
