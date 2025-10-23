@@ -69,6 +69,14 @@
 
             <button type="submit">Sign up</button>
         </form>
+
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li style="color: red;">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </div>
 </body>
 </html>

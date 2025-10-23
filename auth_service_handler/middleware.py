@@ -1,15 +1,13 @@
 # auth/middleware.py
 from django.http import JsonResponse
-from .jwt_handler import decode_jwt, refresh_jwt
-from jwt import ExpiredSignatureError
 
-class JWTMiddleware:
+class JWTAuthenticationMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         
         # 인증이 필요 없는 path
         self.public_paths = [
-            '',
+            '/',
             '/login/',
             '/signup/',
         ]
