@@ -15,23 +15,30 @@ def login(request):
     
     if request.method == 'POST':
         # ID/PWD validation check --> to User Service
-        
         load_dotenv()
         
-        api_url = os.getenv('USER_SERVICE_URL')
+        #사용자 정보 체크
+        api_url = os.getenv('USER_SERVICE_LOGIN_URL')
         
-        username = request.POST.get('username')
+        userid = request.POST.get('userid')
         password = request.POST.get('password')
         payload = {
-            "username": username,
+            "userid": userid,
             "password": password,
         }
+        
+        print(payload)
         response = requests.post(api_url, json=payload)
-
+        
         if response.status_code == 200:
-            return HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
+            htmlResponse = HttpResponse(HTMLRenderer(request, 'user_manage/index.html', params={}))
+            default_header_set(htmlResponse, '','')
+
+            return htmlResponse
         elif response.status_code == 400:
-            return HttpResponse("Signup failed: " + response.json().get('error', 'Unknown error'), status=400)
+            print(response.headers)
+            print(response.content)
+            return HttpResponse("Signin failed: " + response.json().get('error', 'Unknown error'), status=400)
         else:
             return HttpResponse("An unexpected error occurred.", status=500)
         
@@ -39,6 +46,7 @@ def login(request):
         access_token = get_access_token(request)
         
         if access_token is None:
+            print("no access token")
             HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
         try:
              validate_access_token(access_token)
@@ -77,7 +85,7 @@ def default_index(request):
 def signup(request):
     
     if request.method == 'POST':
-        
+        print('get in here?')
         load_dotenv()
         api_url = os.getenv('USER_SERVICE_URL') + 'signup/'
         username = request.POST.get('username')
@@ -86,7 +94,7 @@ def signup(request):
         role = request.POST.get('role')
         
         payload = {
-            "username": username,
+            "userid": username,
             "password": password,
             "email": email,
             "role": role,
@@ -94,18 +102,20 @@ def signup(request):
         
         try:
             api_response = requests.post(api_url, json=payload)
-        except Exception as e:
-            messages.error(request, "회원가입 중 오류가 발생했습니다. 다시 시도해주세요.")
+            api_response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code
+            if status == 409:
+                messages.error(request, "이미 가입된 회원입니다.")
+            else:
+                messages.error(request, "회원가입 중 오류가 발생했습니다. 다시 시도해주세요.")
+                
             return redirect("/signup/")  # 다시 회원가입 페이지로    
         
         if api_response.status_code == 201: # 201 Created
             response = HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
             
-            response.user_id = request.json().get('user_id')
-            default_header_set(response, 
-                               access_token=api_response.json().get('access_token'),
-                               refresh_token=api_response.cookies.get('refresh_token'))
-            
+            # login이니까 사실 token으로 뭘 할 필요는 없다.
             return response
         
         else:
