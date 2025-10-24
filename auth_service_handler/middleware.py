@@ -13,7 +13,7 @@ class JWTAuthenticationMiddleware:
         ]
 
     def __call__(self, request):
-        
+        print(request.path)
         if request.path in self.public_paths:
             return self.get_response(request)
         
