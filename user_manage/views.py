@@ -6,6 +6,7 @@ from auth_service_handler.jwt_handler import validate_access_token
 from dotenv import load_dotenv
 import os
 import django.contrib.messages as messages
+import json
 
 def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
     return render(request, template_name, params)
@@ -27,18 +28,17 @@ def login(request):
             "password": password,
         }
         
-        print(payload)
         response = requests.post(api_url, json=payload)
+        response_string = response.content.decode()
+        data = json.loads(response_string)
         
-        if response.status_code == 200:
-            htmlResponse = HttpResponse(HTMLRenderer(request, 'user_manage/index.html', params={}))
-            default_header_set(htmlResponse, '','')
+        if response.status_code == 200 or response.status_code == 201:
+            response = redirect('/index')
+            default_header_set(response, data['access_token'],data['refresh_token'])
 
-            return htmlResponse
+            return response
         elif response.status_code == 400:
-            print(response.headers)
-            print(response.content)
-            return HttpResponse("Signin failed: " + response.json().get('error', 'Unknown error'), status=400)
+            return HttpResponse("Signin failed: " + data.get('error', 'Unknown error'), status=400)
         else:
             return HttpResponse("An unexpected error occurred.", status=500)
         
@@ -50,7 +50,7 @@ def login(request):
             HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
         try:
              validate_access_token(access_token)
-             return redirect('/index/')
+             return redirect('/index')
         except Exception as e: #예외상황 시 어차피 로그인 페이지로 이동 필요.
             if str(e) == 'TokenExpired':
                 pass
@@ -146,12 +146,13 @@ def get_refresh_token(request):
 def default_header_set(response, access_token = None, refresh_token = None):
     
     if access_token:
-        response.headers['Authorization'] = f"Bearer {response.json().get('access_token')}"
+        response['Authorization'] = f"Bearer {refresh_token}"
     if refresh_token:
         response.set_cookie('refresh_token',
                             refresh_token, 
                             httponly=True, 
                             secure=True, 
                             samesite='Lax')
-    
+        
+    response.headers.items()
     return response

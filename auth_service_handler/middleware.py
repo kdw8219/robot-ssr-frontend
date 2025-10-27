@@ -13,12 +13,14 @@ class JWTAuthenticationMiddleware:
         ]
 
     def __call__(self, request):
-        print(request.path)
+        print('auth_check: ' + request.path)
         if request.path in self.public_paths:
             return self.get_response(request)
         
         # 1. Access Token 가져오기 (Cookie 또는 Header)
-        token = request.COOKIES.get('access_token') or request.headers.get('Authorization', '').replace('Bearer ', '')
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        
+        print(request.headers)
         
         # 2. 토큰이 없다면 401 Unauthorized 반환. 기본적으로 access token이 없으면 안됨. 오히려 refresh token이 optional
         if not token:
