@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import django.contrib.messages as messages
 import json
+from django.http import JsonResponse
 
 def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
     return render(request, template_name, params)
@@ -34,11 +35,11 @@ def login(request):
         
         if response.status_code == 200 or response.status_code == 201:
             response = redirect('/index')
-            default_header_set(response, data['access_token'],data['refresh_token'])
-
+            default_header_set(response, data['access_token'], data['refresh_token'])
+            
             return response
         elif response.status_code == 400:
-            return HttpResponse("Signin failed: " + data.get('error', 'Unknown error'), status=400)
+            return HttpResponse("Log in failed: " + data.get('error', 'Unknown error'), status=400)
         else:
             return HttpResponse("An unexpected error occurred.", status=500)
         
@@ -85,7 +86,6 @@ def default_index(request):
 def signup(request):
     
     if request.method == 'POST':
-        print('get in here?')
         load_dotenv()
         api_url = os.getenv('USER_SERVICE_URL') + 'signup/'
         username = request.POST.get('username')
@@ -127,16 +127,9 @@ def signup(request):
    
 
 def get_access_token(request):
-    auth_header = request.headers.get('Authorization', None)
+    access_token = request.COOKIES.get('access_token', None)
     
-    if auth_header is None:
-        return None
-    
-    parts = auth_header.split(' ')
-    if len(parts) != 2 or parts[0] != 'Bearer':
-        return None
-    
-    return parts[1]
+    return access_token
 
 def get_refresh_token(request):
     refresh_token = request.COOKIES.get('refresh_token', None)
@@ -144,9 +137,13 @@ def get_refresh_token(request):
     return refresh_token
 
 def default_header_set(response, access_token = None, refresh_token = None):
-    
     if access_token:
-        response['Authorization'] = f"Bearer {refresh_token}"
+        response.set_cookie('access_token',
+                            access_token, 
+                            httponly=True, 
+                            secure=True, 
+                            samesite='Lax')
+        
     if refresh_token:
         response.set_cookie('refresh_token',
                             refresh_token, 
@@ -154,5 +151,5 @@ def default_header_set(response, access_token = None, refresh_token = None):
                             secure=True, 
                             samesite='Lax')
         
-    response.headers.items()
+        
     return response
