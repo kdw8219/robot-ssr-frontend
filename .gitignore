@@ -6,3 +6,7 @@ user_manage/migrations/__pycache__/
 db.sqlite3
 .env
 venv/
+robot_manage/__pycache__/__init__.cpython-312.pyc
+robot_manage/__pycache__/urls.cpython-312.pyc
+robot_manage/__pycache__/views.cpython-312.pyc
+user_manage/dto/__pycache__/loginSerializer.cpython-312.pyc
