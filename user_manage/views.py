@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 import os
 import django.contrib.messages as messages
 import json
-from django.http import JsonResponse
+from user_manage.dto.loginSerializer import LoginSerializer
+from django.views.decorators.csrf import csrf_exempt
 
 def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
     return render(request, template_name, params)
@@ -29,13 +30,18 @@ def login(request):
             "password": password,
         }
         
+        # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
         response = requests.post(api_url, json=payload)
-        response_string = response.content.decode()
-        data = json.loads(response_string)
+        serializer = LoginSerializer(data = response.json())
+        
+        if not serializer.is_valid():
+            return HttpResponse("Log in failed. ", status=400)
+        
+        data = serializer.validated_data
         
         if response.status_code == 200 or response.status_code == 201:
             response = redirect('/index')
-            default_header_set(response, data['access_token'], data['refresh_token'])
+            default_header_set(response, data)
             
             return response
         elif response.status_code == 400:
@@ -136,20 +142,34 @@ def get_refresh_token(request):
     
     return refresh_token
 
-def default_header_set(response, access_token = None, refresh_token = None):
-    if access_token:
+def default_header_set(response, data:dict):
+    if None != data.get('access_token'):
         response.set_cookie('access_token',
-                            access_token, 
+                            data.get('access_token'), 
                             httponly=True, 
                             secure=True, 
                             samesite='Lax')
         
-    if refresh_token:
+    if None != data.get('refresh_token') :
         response.set_cookie('refresh_token',
-                            refresh_token, 
+                            data.get('refresh_token'), 
                             httponly=True, 
                             secure=True, 
                             samesite='Lax')
         
+    
+    if None != data.get('userId') :
+        response.set_cookie('userId',
+                            data.get('userId'), 
+                            httponly=True, 
+                            secure=True, 
+                            samesite='Lax')
+    
+    if None != data.get('id') :
+        response.set_cookie('id',
+                            data.get('id'), 
+                            httponly=True, 
+                            secure=True, 
+                            samesite='Lax')    
         
     return response
