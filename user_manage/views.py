@@ -77,14 +77,12 @@ async def login(request):
 async def logout(request):
     
     load_dotenv()
-    url_logout = os.getenv('AUTH_SERVICE_URL')
+    url_logout = os.getenv('AUTH_SERVICE_URL') #  refresh, access만 지운다. 사용자 정보 체크는 굳이 불필요하다.
     
-    #사용자 정보 체크
-    api_url = os.getenv('USER_SERVICE_LOGIN_URL')
-        
     # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
     async with httpx.AsyncClient() as client:
-        await client.delete(api_url, cookies=request.COOKIES)
+        print(request.COOKIES)
+        await client.post(url_logout, cookies=request.COOKIES)
     
     response = redirect('/')
     response.delete_cookie('access_token')
