@@ -1,6 +1,10 @@
 from django.shortcuts import render
+from django.http import HttpResponse
+from auth_service_handler.decorator import jwt_required
 
-# Create your views here.
-def admin():
-    #user 권한 얻어와야 함.login 했을 때 응답으로 user 권한에 대한 정보를 셋팅
-    return ''
+def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
+    return render(request, template_name, params)
+
+@jwt_required
+def admin(request):
+    return HttpResponse(HTMLRenderer(request, 'robot_manage/robot_manage.html', params={}))
