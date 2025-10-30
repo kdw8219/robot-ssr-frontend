@@ -39,7 +39,7 @@ def login(request):
         data = serializer.validated_data
         
         if response.status_code == 200 or response.status_code == 201:
-            response = redirect('/index')
+            response = redirect('/index/')
             set_default_header(response, data)
             
             return response
@@ -57,7 +57,7 @@ def login(request):
         else:
             try:
                 validate_access_token(access_token)
-                return redirect('/index')
+                return redirect('/index/')
             except Exception as e: #예외상황 시 어차피 로그인 페이지로 이동 필요.
                 if str(e) == 'TokenExpired':
                     pass

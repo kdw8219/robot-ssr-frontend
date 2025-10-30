@@ -53,22 +53,47 @@
 <body>
     <div class="signup-container">
         <h1>Sign up</h1>
-        <form method="POST" action="/signup/">
-            {% csrf_token %}
-            <input type="text" name="username" placeholder="ID" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <input type="email" name="email" placeholder="Email" required>
+        <form id="signupForm" method="POST" action="/signup/">
+    {% csrf_token %}
+    <input type="text" name="username" id="username" placeholder="ID" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="email" name="email" id="email" placeholder="Email" required>
 
-            <label for="role">Role</label>
-            <select name="role" id="role" required>
-                <option value="">Choose</option>
-                <option value="admin">Administrator</option>
-                <option value="operator">Operator</option>
-                <option value="monitor">Monitor</option>
-            </select>
+    <label for="role">Role</label>
+    <select name="role" id="role" required>
+        <option value="">Choose</option>
+        <option value="admin">Administrator</option>
+        <option value="operator">Operator</option>
+        <option value="monitor">Monitor</option>
+    </select>
 
-            <button type="submit">Sign up</button>
-        </form>
+    <button type="submit">Sign up</button>
+</form>
+
+<script>
+    const forbiddenChars = /[#?!]/; // 들어가면 안되는 문자
+    const form = document.getElementById("signupForm");
+    const usernameInput = document.getElementById("username");
+    const emailInput = document.getElementById("email");
+
+    form.addEventListener("submit", (e) => {
+        let errors = [];
+
+        if (forbiddenChars.test(usernameInput.value)) {
+            errors.push("Username에는 #, !, ? 문자를 사용할 수 없습니다.");
+        }
+
+        if (forbiddenChars.test(emailInput.value)) {
+            errors.push("Email에는 #, !, ? 문자를 사용할 수 없습니다.");
+        }
+
+        if (errors.length > 0) {
+            e.preventDefault(); // 제출 막기
+            alert(errors.join("\n"));
+        }
+    });
+</script>
+
 
         {% if messages %}
             <ul>

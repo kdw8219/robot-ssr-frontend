@@ -3,72 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index</title>
+    <title>Robot Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f6f8;
+            background-color: #f5f5f5;
+            margin: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
             height: 100vh;
-            margin: 0;
         }
 
-        .logout-btn {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            background-color: #ff6b6b;
+        header {
+            background-color: #007bff;
             color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .logout-btn:hover {
-            background-color: #ff4b4b;
-        }
-
-        .container-wrapper {
+            padding: 20px 30px;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            gap: 20px;
         }
 
-        .container {
+        .header-left h2 { margin: 0; }
+
+        .header-right button {
+            margin-left: 10px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
             background-color: #fff;
-            padding: 35px 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 320px;
+            color: #007bff;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
         }
 
-        h1 {
-            font-size: 22px;
-            color: #333;
-            margin: 0;
+        .header-right button:hover { background-color: #e6e6e6; }
+
+        main {
+            flex-grow: 1;
+            padding: 20px 40px;
+            background-color: #fff;
+            overflow-y: auto;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th { background-color: #f8f8f8; }
+
+        tr:hover { background-color: #f0f8ff; cursor: pointer; }
+
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 6px 12px;
+            margin: 0 4px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        .pagination button.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .editBtn, .deleteBtn {
+            padding: 4px 8px;
+            margin-right: 4px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .editBtn { background-color: #ffc107; color: #000; }
+        .editBtn:hover { background-color: #e0a800; }
+
+        .deleteBtn { background-color: #dc3545; color: #fff; }
+        .deleteBtn:hover { background-color: #c82333; }
     </style>
 </head>
 <body>
-    <!-- 로그아웃 버튼 -->
-    <button class="logout-btn" onclick="location.href='/logout/'">로그아웃</button>
+    <header>
+        <div class="header-left">
+            <h2>Hello {{ userId }} — you are {{ role }}</h2>
+        </div>
+        <div class="header-right">
+            <button id="manageBtn" disabled>Manage Robots</button>
+            <button onclick="location.href='/logout/'">Logout</button>
+        </div>
+    </header>
 
-    <!-- 컨테이너 묶음 -->
-    <div class="container-wrapper">
-        <div class="container">
-            <h1>Hello {{ userId }}</h1>
-        </div>
-        <div class="container">
-            <h1>Your role is {{ role }}</h1>
-        </div>
-    </div>
+    <main>
+        <h3>Registered Robots</h3>
+        <table id="robotTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nickname</th>
+                    <th>IP Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 서버에서 페이지 단위로 로드 -->
+            </tbody>
+        </table>
+        <div class="pagination" id="pagination"></div>
+    </main>
+
+    <script>
+        const role = "{{ role }}";
+        const manageBtn = document.getElementById("manageBtn");
+
+        if (role.toLowerCase() === "administrator" || role.toLocaleLowerCase() === "admin") {
+            manageBtn.disabled = false;
+            manageBtn.addEventListener("click", () => {
+                window.location.href = "/robot/management/";
+            });
+        }
+
+        const perPage = 100;
+        let currentPage = 1;
+        let totalRobots = 0;
+
+        async function fetchRobots(page) {
+            // 서버에서 페이지 데이터 요청
+            const res = await fetch(`/robots?page=${page}&per_page=${perPage}`);
+            const data = await res.json();
+            totalRobots = data.total;  // 전체 로봇 수
+            return data.robots;        // 현재 페이지 로봇 데이터
+        }
+
+        async function renderTable(page = 1) {
+            currentPage = page;
+            const tbody = document.querySelector("#robotTable tbody");
+            tbody.innerHTML = "";
+
+            const robots = await fetchRobots(page);
+
+            robots.forEach((r, i) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${(currentPage-1)*perPage + i + 1}</td>
+                    <td>${r.nickname}</td>
+                    <td>${r.ip}</td>
+                    <td>
+                        <button class="editBtn">Edit</button>
+                        <button class="deleteBtn">Delete</button>
+                    </td>
+                `;
+
+                // 행 클릭 → 상세보기
+                row.addEventListener("click", () => {
+                    window.location.href = `/robot_detail/${r.id}/`;
+                });
+
+                // Edit 버튼 클릭
+                row.querySelector(".editBtn").addEventListener("click", e => {
+                    e.stopPropagation();
+                    window.location.href = `/edit_robot/${r.id}/`;
+                });
+
+                // Delete 버튼 클릭
+                row.querySelector(".deleteBtn").addEventListener("click", e => {
+                    e.stopPropagation();
+                    if (confirm(`정말 ${r.nickname}를 삭제하시겠습니까?`)) {
+                        fetch(`/delete_robot/${r.id}/`, { method: "DELETE" })
+                            .then(res => {
+                                if (res.ok) renderTable(currentPage);
+                                else alert("삭제 실패");
+                            });
+                    }
+                });
+
+                tbody.appendChild(row);
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(totalRobots / perPage);
+            const container = document.getElementById("pagination");
+            container.innerHTML = "";
+
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement("button");
+                btn.textContent = i;
+                if (i === currentPage) btn.classList.add("active");
+                btn.addEventListener("click", () => renderTable(i));
+                container.appendChild(btn);
+            }
+        }
+
+        // 초기 렌더
+        renderTable();
+    </script>
 </body>
 </html>
