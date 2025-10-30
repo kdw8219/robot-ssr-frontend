@@ -53,7 +53,7 @@ async def login(request):
             return HttpResponse("An unexpected error occurred.", status=500)
         
     elif request.method == 'GET':
-        access_token = await get_access_token(request)
+        access_token = get_access_token(request)
         
         logger.info(access_token)
         
