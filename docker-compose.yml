@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    command: gunicorn robot_management.asgi:application -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 -w 4
+    volumes:
+      - .:/app   # 코드 변경 시 바로 반영
+      - logs_volume:/app/logs
+      - static_volume:/app/static
+    ports:
+      - "8000:8000"
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/static
+    depends_on:
+      - web
+
+volumes:
+  logs_volume:
+  static_volume:
+
