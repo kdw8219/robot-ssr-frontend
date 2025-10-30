@@ -7,7 +7,9 @@ from functools import wraps
 from typing import Optional, Tuple, Dict
 import json
 from utils.views import validate_access_token
+import logging
 
+logger = logging.getLogger("auth_service_handler")
 
 def jwt_required(view_func):
     def get_access_token(request) -> Optional[str]:
@@ -35,7 +37,7 @@ def jwt_required(view_func):
              
             return False, None
         except Exception as e:
-            print(f'refresh fail...{e}')
+            logger.info(f'refresh fail...{e}')
             return False, None
         
     async def refresh_token_process(request, *args, **kwargs):
@@ -50,11 +52,13 @@ def jwt_required(view_func):
             is_valid, payload = await refresh_tokens(client, refresh_token)
             if is_valid:
                 # 토큰이 유효하면 access token 취득 후 단말로 전달
+                logger.debug("refresh token is valid")
                 request.COOKIES['access_token'] = payload.get('access_token')
                 response = view_func(request, *args, **kwargs)
                 return response
             
             else:
+                logger.error("refresh token is invalid")
                 response = redirect('/login')
                 response.delete_cookie('refresh_token')
                 response.delete_cookie('access_token')

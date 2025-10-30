@@ -12,3 +12,4 @@ robot_manage/__pycache__/views.cpython-312.pyc
 user_manage/dto/__pycache__/loginSerializer.cpython-312.pyc
 utils/__pycache__/__init__.cpython-312.pyc
 utils/__pycache__/views.cpython-312.pyc
+logs/*
