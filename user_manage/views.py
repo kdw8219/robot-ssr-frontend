@@ -8,12 +8,16 @@ import os
 import django.contrib.messages as messages
 from user_manage.dto.loginSerializer import LoginSerializer
 from django.views.decorators.csrf import csrf_exempt
+import logging
+import httpx
+
+logger = logging.getLogger('user_manage')
 
 def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
     return render(request, template_name, params)
 
 #login 시 세션이 남아있다면 index로 redirect(POST, GET 모두)
-def login(request):
+async def login(request):
     
     if request.method == 'POST':
         # ID/PWD validation check --> to User Service
@@ -29,9 +33,9 @@ def login(request):
             "password": password,
         }
         
-        # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
-        response = requests.post(api_url, json=payload)
-        serializer = LoginSerializer(data = response.json())
+        async with httpx.AsyncClient() as client:
+            response = await client.post(api_url, json=payload)
+            serializer = LoginSerializer(data = response.json())
         
         if not serializer.is_valid():
             return HttpResponse("Log in failed. ", status=400)
@@ -49,14 +53,18 @@ def login(request):
             return HttpResponse("An unexpected error occurred.", status=500)
         
     elif request.method == 'GET':
-        access_token = get_access_token(request)
+        access_token = await get_access_token(request)
+        
+        logger.info(access_token)
         
         if access_token is None:
-            print("no access token")
+            logger.info("GET-login : no access token")
             HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
         else:
             try:
-                validate_access_token(access_token)
+                if not validate_access_token(access_token):
+                    
+                    raise Exception
                 return redirect('/index/')
             except Exception as e: #예외상황 시 어차피 로그인 페이지로 이동 필요.
                 if str(e) == 'TokenExpired':
@@ -66,7 +74,7 @@ def login(request):
     
     return HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
 
-def logout(request):
+async def logout(request):
     
     load_dotenv()
     url_logout = os.getenv('AUTH_SERVICE_URL')
@@ -75,7 +83,8 @@ def logout(request):
     api_url = os.getenv('USER_SERVICE_LOGIN_URL')
         
     # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
-    requests.delete(api_url, cookies=request.COOKIES)
+    async with httpx.AsyncClient() as client:
+        await client.delete(api_url, cookies=request.COOKIES)
     
     response = redirect('/')
     response.delete_cookie('access_token')
@@ -96,7 +105,7 @@ def index(request):
     
     return HttpResponse(HTMLRenderer(request,'user_manage/index.html', params))
 
-def default_index(request):
+async def default_index(request):
     
     # 1. Access Token 가져오기 (Cookie 또는 Header)
     try:
@@ -106,7 +115,7 @@ def default_index(request):
     except Exception as e:
         return HttpResponse(HTMLRenderer(request,'user_manage/index_default.html', params={}))
         
-def signup(request):
+async def signup(request):
     
     if request.method == 'POST':
         load_dotenv()
@@ -124,8 +133,9 @@ def signup(request):
         }
         
         try:
-            api_response = requests.post(api_url, json=payload)
-            api_response.raise_for_status()
+            async with httpx.AsyncClient() as client:
+                api_response = await client.post(api_url, json=payload)
+                api_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code
             if status == 409:

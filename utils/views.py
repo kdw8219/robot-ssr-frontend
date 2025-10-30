@@ -2,12 +2,15 @@ from django.shortcuts import render
 import jwt
 from dotenv import load_dotenv
 import os
+import logging
+
+logger = logging.getLogger("utils")
 
 # Create your views here.
 def validate_access_token(token:str) -> bool:
         load_dotenv()
         
-        print('vaidation works')
+        logger.debug('vaidation works')
         
         SECRET_KEY = os.getenv('ACCESS_SECRET_KEY')
         try:
@@ -21,8 +24,8 @@ def validate_access_token(token:str) -> bool:
             return True
 
         except jwt.exceptions.ExpiredSignatureError:
-            print("Token has expired.")
+            logger.info(f"Token has expired. {token}")
             return False
         except jwt.exceptions.InvalidTokenError:
-            print("Invalid token.")
+            logger.info(f"Invalid token. {token}")
             return False
