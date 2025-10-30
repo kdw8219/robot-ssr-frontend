@@ -2,11 +2,10 @@ from django.shortcuts import render, HttpResponse, redirect
 import requests
 
 from auth_service_handler.decorator import jwt_required
-from auth_service_handler.jwt_handler import validate_access_token
+from utils.views import validate_access_token
 from dotenv import load_dotenv
 import os
 import django.contrib.messages as messages
-import json
 from user_manage.dto.loginSerializer import LoginSerializer
 from django.views.decorators.csrf import csrf_exempt
 
@@ -41,7 +40,7 @@ def login(request):
         
         if response.status_code == 200 or response.status_code == 201:
             response = redirect('/index')
-            default_header_set(response, data)
+            set_default_header(response, data)
             
             return response
         elif response.status_code == 400:
@@ -55,14 +54,15 @@ def login(request):
         if access_token is None:
             print("no access token")
             HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
-        try:
-             validate_access_token(access_token)
-             return redirect('/index')
-        except Exception as e: #예외상황 시 어차피 로그인 페이지로 이동 필요.
-            if str(e) == 'TokenExpired':
-                pass
-            elif str(e) == 'TokenInvalid':
-                pass
+        else:
+            try:
+                validate_access_token(access_token)
+                return redirect('/index')
+            except Exception as e: #예외상황 시 어차피 로그인 페이지로 이동 필요.
+                if str(e) == 'TokenExpired':
+                    pass
+                elif str(e) == 'TokenInvalid':
+                    pass
     
     return HttpResponse(HTMLRenderer(request, 'user_manage/login.html', params={}))
 
@@ -71,24 +71,41 @@ def logout(request):
     load_dotenv()
     url_logout = os.getenv('AUTH_SERVICE_URL')
     
-    # Logout 요청 후 Don't care
-    requests.delete(url_logout, cookies=request.COOKIES, auth = request.headers.get('Authorization',''))
+    #사용자 정보 체크
+    api_url = os.getenv('USER_SERVICE_LOGIN_URL')
+        
+    # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
+    requests.delete(api_url, cookies=request.COOKIES)
     
-    return redirect('/')
+    response = redirect('/')
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+    response.delete_cookie('userId')
+    response.delete_cookie('id')
+    response.delete_cookie('role')
+    
+    return response
 
 @jwt_required
 def index(request):
-    return HttpResponse(HTMLRenderer(request,'user_manage/index.html', params={}))
+    
+    params = get_default_header_data(request)
+    
+    if not params.get('id'):
+        return HttpResponse(HTMLRenderer(request,'user_manage/index_default.html', {}))
+    
+    return HttpResponse(HTMLRenderer(request,'user_manage/index.html', params))
 
 def default_index(request):
-    return HttpResponse(HTMLRenderer(request,'user_manage/index.html', params={}))
-
-''' 
-    TODO : signup view post 구현
-     - POST로 요청이 오면 User Service로 회원가입 요청을 보낸다.
-     - User Service에서 성공 응답이 오면 login 페이지로 redirect
-     - 실패 응답이 오면 signup 페이지로 다시 돌아오도록 한다.
-'''
+    
+    # 1. Access Token 가져오기 (Cookie 또는 Header)
+    try:
+        token = request.COOKIES['access_token']
+        return redirect('/index')
+            
+    except Exception as e:
+        return HttpResponse(HTMLRenderer(request,'user_manage/index_default.html', params={}))
+        
 def signup(request):
     
     if request.method == 'POST':
@@ -142,7 +159,7 @@ def get_refresh_token(request):
     
     return refresh_token
 
-def default_header_set(response, data:dict):
+def set_default_header(response, data:dict):
     if None != data.get('access_token'):
         response.set_cookie('access_token',
                             data.get('access_token'), 
@@ -157,7 +174,6 @@ def default_header_set(response, data:dict):
                             secure=True, 
                             samesite='Lax')
         
-    
     if None != data.get('userId') :
         response.set_cookie('userId',
                             data.get('userId'), 
@@ -170,6 +186,18 @@ def default_header_set(response, data:dict):
                             data.get('id'), 
                             httponly=True, 
                             secure=True, 
-                            samesite='Lax')    
+                            samesite='Lax')
+        
+    if None != data.get('role') :
+        response.set_cookie('role',
+                            data.get('role'), 
+                            httponly=True, 
+                            secure=True, 
+                            samesite='Lax')   
         
     return response
+
+def get_default_header_data(request):
+    res =  {'id': request.COOKIES.get('id'), 'userId': request.COOKIES.get('userId'), 'role': request.COOKIES.get('role')}
+    
+    return res
