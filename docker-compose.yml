@@ -3,6 +3,8 @@ version: "3.9"
 services:
   web:
     build: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: gunicorn robot_management.asgi:application -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 -w 4
     volumes:
       - .:/app   # 코드 변경 시 바로 반영

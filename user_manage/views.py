@@ -38,6 +38,7 @@ async def login(request):
             serializer = LoginSerializer(data = response.json())
         
         if not serializer.is_valid():
+            logger.info(f'serializer fail : {response.json()}')
             return HttpResponse("Log in failed. ", status=400)
         
         data = serializer.validated_data
