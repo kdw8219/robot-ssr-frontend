@@ -49,9 +49,9 @@ async def login(request):
             
             return response
         elif response.status_code == 400:
-            return HttpResponse("Log in failed: " + data.get('error', 'Unknown error'), status=400)
+            return redirect('/error/')
         else:
-            return HttpResponse("An unexpected error occurred.", status=500)
+            return redirect('/error/')
         
     elif request.method == 'GET':
         access_token = get_access_token(request)
@@ -113,7 +113,11 @@ async def default_index(request):
             
     except Exception as e:
         return HttpResponse(HTMLRenderer(request,'user_manage/index_default.html', params={}))
-        
+
+def error(request):
+    params = get_default_header_data(request)
+    return HttpResponse(HTMLRenderer(request,'user_manage/error.html', params))
+    
 async def signup(request):
     
     if request.method == 'POST':
