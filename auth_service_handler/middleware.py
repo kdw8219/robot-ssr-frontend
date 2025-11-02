@@ -15,6 +15,7 @@ class JWTAuthenticationMiddleware:
             '/login/',
             '/signup/',
             '/logout/',
+            '/error/',
         ]
 
     def __call__(self, request):

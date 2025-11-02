@@ -23,4 +23,5 @@ urlpatterns = [
     path('logout/', user_views.logout, name='logout'),
     path('', user_views.default_index, name='default_index'),
     path('index/', user_views.index, name='index'),
+    path('error/', user_views.error, name='error'),
 ]
