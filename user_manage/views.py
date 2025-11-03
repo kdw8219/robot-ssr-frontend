@@ -33,13 +33,21 @@ async def login(request):
             "password": password,
         }
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(api_url, json=payload)
-            serializer = LoginSerializer(data = response.json())
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(api_url, json=payload, timeout= 1)
+                serializer = LoginSerializer(data = response.json())
+        except httpx.TimeoutException as e:
+            logger.info('async login timeout...' + str(e))
+            return redirect('/error/')
+        except Exception as e:
+            logger.info('async login unexpected...' + str(e))
+            return redirect('/error/')
+            
         
         if not serializer.is_valid():
             logger.info(f'serializer fail : {response.json()}')
-            return HttpResponse("Log in failed. ", status=400)
+            return redirect('/error/')
         
         data = serializer.validated_data
         
@@ -80,10 +88,20 @@ async def logout(request):
     load_dotenv()
     url_logout = os.getenv('AUTH_SERVICE_URL') #  refresh, access만 지운다. 사용자 정보 체크는 굳이 불필요하다.
     
-    # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
-    async with httpx.AsyncClient() as client:
-        print(request.COOKIES)
-        await client.post(url_logout, cookies=request.COOKIES)
+    try:
+        # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
+        async with httpx.AsyncClient() as client:
+            logger.info('logout process start')
+            logger.info(url_logout)
+            await client.delete(url_logout, cookies=request.COOKIES, timeout=1)
+            logger.info('logout completed')
+    except httpx.TimeoutException as e:
+        logger.info('async logout timeout...' + str(e))
+        return redirect('/error/')
+    except Exception as e:
+        logger.info('async logout unexpected...' + str(e))
+        return redirect('/error/')
+        
     
     response = redirect('/')
     response.delete_cookie('access_token')
