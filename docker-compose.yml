@@ -10,8 +10,8 @@ services:
       - .:/app   # 코드 변경 시 바로 반영
       - logs_volume:/app/logs
       - static_volume:/app/static
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
 
   nginx:
     image: nginx:latest
