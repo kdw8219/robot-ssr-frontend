@@ -61,10 +61,14 @@
     <div class="form-container">
         <h2>Register New Robot</h2>
         <form id="robotForm">
-            <label for="nickname">Nickname</label>
-            <input type="text" id="nickname" required>
-            <label for="ip">Representative IP</label>
-            <input type="text" id="ip" required>
+            <label for="robot_id">Robot Id</label>
+            <input type="text" id="robot_id" required>
+            <label for="model">Robot Model</label>
+            <input type="text" id="model" required>
+            <label for="firmware">Robot Firmware</label>
+            <input type="text" id="firmware" required>
+            <label for="location">location</label>
+            <input type="text" id="location" required>
             <button type="submit">Register</button>
         </form>
     </div>
@@ -73,10 +77,12 @@
         document.getElementById("robotForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const data = {
-                nickname: document.getElementById("nickname").value,
-                ip: document.getElementById("ip").value
+                robot_id: document.getElementById("robot_id").value,
+                model: document.getElementById("model").value,
+                firmware: document.getElementById("firmware").value,
+                location: document.getElementById("location").value
             };
-            const res = await fetch("/api/robots/", {
+            const res = await fetch("/robot/management/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
@@ -89,5 +95,12 @@
             }
         });
     </script>
+    {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li style="color: red;">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
 </body>
 </html>

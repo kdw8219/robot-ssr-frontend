@@ -157,7 +157,7 @@ async def signup(request):
             async with httpx.AsyncClient() as client:
                 api_response = await client.post(api_url, json=payload)
                 api_response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             status = e.response.status_code
             if status == 409:
                 messages.error(request, "이미 가입된 회원입니다.")
