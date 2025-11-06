@@ -29,8 +29,8 @@ class JWTAuthenticationMiddleware:
         # 1. 토큰이 없다면 401 Unauthorized 반환. 기본적으로 access token이 없으면 안됨. 오히려 refresh token이 optional
         if 'access_token' not in request.COOKIES:
             logger.info(f'[JWTAuthMiddleware] no access token')
-            return JsonResponse({'detail': 'Unauthorized'}, status=401)
-
+            return redirect('/error/')
         # 2. 요청 처리
+
         response = self.get_response(request)
         return response
