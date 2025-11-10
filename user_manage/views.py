@@ -13,7 +13,7 @@ import httpx
 
 logger = logging.getLogger('user_manage')
 
-def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
+def HTMLRenderer(request, template_name='user_manage/index_default.html', params={}):
     return render(request, template_name, params)
 
 #login 시 세션이 남아있다면 index로 redirect(POST, GET 모두)

@@ -8,6 +8,7 @@ from typing import Optional, Tuple, Dict
 import json
 from utils.views import validate_access_token
 import logging
+import asyncio
 
 logger = logging.getLogger("auth_service_handler")
 
@@ -70,7 +71,12 @@ def jwt_required(view_func):
         
         if access_token: #access가 있으면
             if validate_access_token(access_token):
-                response = view_func(request, *args, **kwargs)
+                
+                response = None
+                if asyncio.iscoroutinefunction(view_func):
+                    response = await view_func(request, *args, **kwargs)
+                else:
+                    response = view_func(request, *args, **kwargs)
                 return response
             else: #invalid access token
                 return await refresh_token_process(request, *args, **kwargs)
