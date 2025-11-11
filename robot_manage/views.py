@@ -29,7 +29,7 @@ async def signup(request):
         robot_service_url = os.getenv('ROBOT_SERVICE_URL')
         parsed_data = None
         try:
-            data = json.loads(request.body.decode('utf-8'))
+            parsed_data = json.loads(request.body.decode('utf-8'))
         except json.JSONDecodeError:
             messages.error(request, "요청 정보 확인이 필요합니다.")
             return redirect('/error/')
