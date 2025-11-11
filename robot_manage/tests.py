@@ -27,11 +27,11 @@ async def test_signup_success(mock_post, async_client, settings):
         "location": "Seoul",
     }
 
-    url = reverse("/robot/management/") 
+    url = reverse("/robots/management/") 
     response = await async_client.post(url, data=data)
 
     assert response.status_code == 302  # redirect
-    assert response.headers["Location"] == "/robot/management/"
+    assert response.headers["Location"] == "/robots/management/"
     mock_post.assert_called_once()  # 외부 호출 확인
 
 # -------------------------------
@@ -57,7 +57,7 @@ async def test_signup_conflict(mock_post, async_client, settings):
     response = await async_client.post(url, data=data)
 
     assert response.status_code == 302
-    assert response.headers["Location"] == "/robot/management/"
+    assert response.headers["Location"] == "/robots/management/"
 
     # Django messages framework 확인
     messages = [msg.message for msg in get_messages(response.wsgi_request)]
