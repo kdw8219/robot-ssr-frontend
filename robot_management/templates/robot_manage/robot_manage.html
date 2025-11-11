@@ -66,8 +66,8 @@
             <input type="text" id="robot_id" required>
             <label for="model">Robot Model</label>
             <input type="text" id="model" required>
-            <label for="firmware">Robot Firmware</label>
-            <input type="text" id="firmware" required>
+            <label for="firmware_version">Robot Firmware</label>
+            <input type="text" id="firmware_version" required>
             <label for="location">location</label>
             <input type="text" id="location" required>
             <button type="submit">Register</button>
@@ -97,10 +97,10 @@
             const data = {
                 robot_id: document.getElementById("robot_id").value,
                 model: document.getElementById("model").value,
-                firmware: document.getElementById("firmware").value,
+                firmware_version: document.getElementById("firmware_version").value,
                 location: document.getElementById("location").value
             };
-            const res = await fetch("/robot/management/", {
+            const res = await fetch("/robots/management/", {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
@@ -110,18 +110,11 @@
             });
             if (res.ok) {
                 alert("Robot registered successfully!");
-                location.href = "/index.html";
+                location.href = "/robots/management/";
             } else {
                 alert("Failed to register robot.");
             }
         });
     </script>
-    {% if messages %}
-            <ul>
-                {% for message in messages %}
-                    <li style="color: red;">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
 </body>
 </html>
