@@ -173,20 +173,20 @@
 
                 // 행 클릭 → 상세보기
                 row.addEventListener("click", () => {
-                    window.location.href = `/robot_detail/${r.id}/`;
+                    window.location.href = `/robots/detail/${r.id}/`;
                 });
 
                 // Edit 버튼 클릭
                 row.querySelector(".editBtn").addEventListener("click", e => {
                     e.stopPropagation();
-                    window.location.href = `/edit_robot/${r.id}/`;
+                    window.location.href = `/robots/${r.id}/`;
                 });
 
                 // Delete 버튼 클릭
                 row.querySelector(".deleteBtn").addEventListener("click", e => {
                     e.stopPropagation();
                     if (confirm(`정말 ${r.nickname}를 삭제하시겠습니까?`)) {
-                        fetch(`/delete_robot/${r.id}/`, { method: "DELETE" })
+                        fetch(`/robots/${r.id}/`, { method: "DELETE" })
                             .then(res => {
                                 if (res.ok) renderTable(currentPage);
                                 else alert("삭제 실패");
