@@ -13,6 +13,7 @@ from asgiref.sync import sync_to_async
 import json
 
 logger = logging.getLogger('user_manage')
+robot_infos=[]
 
 def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
     return render(request, template_name, params)
@@ -67,9 +68,9 @@ async def signup(request):
 
 
 @jwt_required
-async def getAll(request):
+async def handling_robots(request):
     if request.method == 'GET':
-        
+        global robot_infos
         page = request.GET.get('page', 1)        # 기본값 1
         page_per = request.GET.get('pagePer', 20) # 기본값 20
         
@@ -90,6 +91,8 @@ async def getAll(request):
                 
                 #log 등록
                 logger.info(deserializer.validated_data.get('result'))
+                #매번 업데이트 해준다. get 해올 때마다. 대신에 가져오는 수가 적기 때문에 메모리 유지해도 지장 없음
+                robot_infos = deserializer.validated_data
                 
                 return await sync_to_async(JsonResponse)(deserializer.validated_data)
             
@@ -104,4 +107,72 @@ async def getAll(request):
         except ValueError as e:
             logger.info('response format is invalid') #추후 로그로 변경
             return await sync_to_async(redirect)("/index/")
+        
+    elif request.method == 'DELETE':
+        return delete_robot(request)
+    elif request.method == 'PUT':
+        return put_robot(request)
+    else:
+        logger.info('unexpected request.. '+ request.method) #추후 로그로 변경
+        return await sync_to_async(redirect)("/index/")
+
+
+
+async def delete_robot(request):
+    global robot_infos
+    page = request.GET.get('page', 1)        # 기본값 1
+    page_per = request.GET.get('pagePer', 20) # 기본값 20
+        
+    params = {
+        'page': int(page),
+        'page_per': int(page_per)
+    }
+    #이대로만 가면 지우기 너무 쉽게 되어 있기 때문에 사용자 정보도 같이 넣어준다(role, 권한 등등 넣기 위함)
+    #당장은 그냥 지울 수 있게 구현.
+    try:
+        async with httpx.AsyncClient() as client:
+            load_dotenv()
+            robot_service_url = os.getenv('ROBOT_SERVICE_URL')
+            api_response = await client.delete(robot_service_url, params = params)
+            api_response.raise_for_status()
+            deserializer = RobotGetResponseSerializer(data=api_response.json())
+            if not deserializer.is_valid():
+                raise ValueError("Invalid value!")
+                
+            #log 등록
+            logger.info(deserializer.validated_data.get('result'))
+            #매번 업데이트 해준다. get 해올 때마다. 대신에 가져오는 수가 적기 때문에 메모리 유지해도 지장 없음
+            robot_infos = deserializer.validated_data
+                
+            return await sync_to_async(JsonResponse)(deserializer.validated_data)
             
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        if status == 409:
+            messages.error(request, "로봇 조회 중 오류가 발생했습니다.")
+        else:
+            messages.error(request, "로봇 조회 중 오류가 발생했습니다. 다시 시도해주세요.")
+                
+        return await sync_to_async(redirect)("/index/")  # 다시 초기 화면으로 
+    except ValueError as e:
+        logger.info('response format is invalid') #추후 로그로 변경
+        return await sync_to_async(redirect)("/index/")
+    
+async def put_robot(request):
+    logger.info('put method occurred!')
+    pass
+
+async def modifying_robots(request, robot_id):
+    logger.info('get modifying!')
+    #show robot_mangae.html view and set data
+    #after fixing data, send it to server using put_robot function
+    response = redirect('/robots/management')
+    return response
+
+async def detail_view_robots(request, robot_id):
+    global robot_infos
+    #item = robot_infos.get(robot_id)
+    print(robot_infos)
+    res = HTMLRenderer(request, 'robot_manage/robot_detail.html', params={'robotId':robot_id})
+    return await sync_to_async(HttpResponse)( res ) 
+    
