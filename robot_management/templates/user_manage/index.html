@@ -142,6 +142,19 @@
         let currentPage = 1;
         let totalRobots = 0;
 
+        async function getCSRF() {
+            let cookieValue = null;
+            const cookies = document.cookie.split(';');
+
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith("csrftoken=")) {
+                    cookieValue = cookie.substring("csrftoken=".length);
+                }
+            }
+            return cookieValue;
+        }
+
         async function fetchRobots(page) {
             // 서버에서 페이지 데이터 요청
             const res = await fetch(`/robots?page=${page}&per_page=${perPage}`);
@@ -156,6 +169,7 @@
             tbody.innerHTML = "";
 
             const robots = await fetchRobots(page);
+            const csrf = await getCSRF()
 
             robots.forEach((r, i) => {
                 const row = document.createElement("tr");
@@ -185,8 +199,9 @@
                 // Delete 버튼 클릭
                 row.querySelector(".deleteBtn").addEventListener("click", e => {
                     e.stopPropagation();
-                    if (confirm(`정말 ${r.nickname}를 삭제하시겠습니까?`)) {
-                        fetch(`/robots/${r.id}/`, { method: "DELETE" })
+                    if (confirm(`정말 ${r.robot_id}를 삭제하시겠습니까?`)) {
+                        
+                        fetch(`/robots/${r.id}/`, { method: "DELETE", credentials:"include", headers:{"X-CSRFToken": csrf} })
                             .then(res => {
                                 if (res.ok) renderTable(currentPage);
                                 else alert("삭제 실패");

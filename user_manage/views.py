@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 import django.contrib.messages as messages
 from user_manage.dto.loginSerializer import LoginSerializer
-from django.views.decorators.csrf import csrf_exempt
+
 import logging
 import httpx
 
