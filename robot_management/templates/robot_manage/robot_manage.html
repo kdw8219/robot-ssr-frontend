@@ -202,6 +202,32 @@
         document.getElementById("robotForm").addEventListener("submit", async (e) => {
             e.preventDefault();
 
+            const forbidden = /[?#\/\\<>]/;
+
+            if (forbidden.test(robot_id.value)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
+            if (forbidden.test(model.value)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
+            if (forbidden.test(firmware_version.value)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
+            if (forbidden.test(robot_location.value)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
             const data = {
                 robot_id: robot_id.value,
                 model: model.value,

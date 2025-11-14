@@ -97,6 +97,33 @@
                 firmware_version: document.getElementById("firmware_version").value,
                 location: document.getElementById("location").value
             };
+
+            const forbidden = /[?#\/\\<>]/;
+
+            if (forbidden.test(data.robot_id)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
+            if (forbidden.test(data.model)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
+            if (forbidden.test(data.firmware_version)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
+            if (forbidden.test(data.location)) {
+                e.preventDefault();
+                alert("You can't use special characters (ex.?, #, <, >)");
+                return ;
+            }
+
             const res = await fetch(`/robots/${data.robot_id}/`, {
                 method: "PATCH",
                 headers: { 
