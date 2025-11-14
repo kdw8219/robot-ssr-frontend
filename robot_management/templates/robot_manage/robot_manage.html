@@ -8,113 +8,226 @@
             font-family: Arial, sans-serif;
             background-color: #f9f9f9;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
+            padding: 40px 0;
         }
-
         .form-container {
             background-color: white;
             padding: 30px 40px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             width: 400px;
+            margin-bottom: 40px;
         }
-
         h2 {
             text-align: center;
             margin-bottom: 20px;
         }
-
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-
+        label { display: block; margin-top: 10px; font-weight: bold; }
         input {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+            width: 100%; padding: 8px; margin-top: 5px;
+            border-radius: 5px; border: 1px solid #ccc;
         }
-
+        .button-row {
+            display: flex; justify-content: space-between;
+        }
         button {
-            margin-top: 20px;
-            width: 100%;
-            padding: 10px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
+            margin-top: 20px; width: 48%; padding: 10px;
+            border: none; background-color: #007bff;
+            color: white; border-radius: 6px; cursor: pointer;
             font-size: 16px;
         }
+        button.return-btn { background-color: #6c757d; }
 
-        button:hover {
-            background-color: #0056b3;
+        table {
+            width: 80%; border-collapse: collapse; background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px; border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+        th { background-color: #007bff; color: white; }
+        .delete-btn {
+            padding: 6px 10px; background-color: #dc3545;
+            color: white; border: none; border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination { margin-top: 20px; text-align: center; }
+        .pagination button {
+            margin: 0 5px; padding: 8px 12px;
+            background: #eee; border: none; border-radius: 5px;
+            cursor: pointer;
+        }
+        .pagination .active {
+            background: #007bff; color: white;
         }
     </style>
 </head>
 <body>
+
     <div class="form-container">
         <h2>Register New Robot</h2>
         <form id="robotForm">
-            {% csrf_token %}
             <label for="robot_id">Robot Id</label>
             <input type="text" id="robot_id" required>
+
             <label for="model">Robot Model</label>
             <input type="text" id="model" required>
+
             <label for="firmware_version">Robot Firmware</label>
             <input type="text" id="firmware_version" required>
-            <label for="location">location</label>
-            <input type="text" id="location" required>
-            <button type="submit">Register</button>
+
+            <label for="robot_location">Location</label>
+            <input type="text" id="robot_location" required>
+
+            <div class="button-row">
+                <button type="submit">Register</button>
+                <button type="button" class="return-btn" onclick="location.href='/index/'">Return</button>
+            </div>
         </form>
     </div>
 
+    <!-- List -->
+    <h2>Registered Robots</h2>
+    <table id="robotTable">
+        <thead>
+            <tr>
+                <th>Robot ID</th>
+                <th>Model</th>
+                <th>Firmware</th>
+                <th>Location</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+
     <script>
-        function getCookie(name) {
+        async function getCSRF() {
             let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    // 해당 쿠키 이름이 일치하는지 확인
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
+            const cookies = document.cookie.split(';');
+
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith("csrftoken=")) {
+                    cookieValue = cookie.substring("csrftoken=".length);
                 }
             }
             return cookieValue;
         }
+        // --- Local State (현재 페이지에서만 유지됨) ---
+        let robots = [];
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 10;
 
-        const csrftoken = getCookie('csrftoken');
+        function renderTable() {
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageData = robots.slice(start, end);
+
+            const tbody = document.querySelector("#robotTable tbody");
+            tbody.innerHTML = ""; // 초기화
+
+            pageData.forEach(robot => {
+                const tr = document.createElement("tr");
+
+                tr.innerHTML = `
+                    <td>${robot.robot_id}</td>
+                    <td>${robot.model}</td>
+                    <td>${robot.firmware_version}</td>
+                    <td>${robot.location}</td>
+                    <td>
+                        <button class="delete-btn">Delete</button>
+                    </td>
+                `;
+
+                // delete 버튼에 id 전달
+                const btn = tr.querySelector(".delete-btn");
+                btn.dataset.id = robot.robot_id;
+
+                // 이벤트 바인딩
+                btn.addEventListener("click", async () => {
+                    if (!confirm(`${robot.robot_id} 삭제할까요?`)) return;
+
+                    // local list에서 제거
+                    robots = robots.filter(r => r.robot_id !== robot.robot_id);
+
+                    // 서버 삭제 요청
+                    const csrf = await getCSRF();
+                    await fetch(`/robots/${robot.robot_id}/`, {
+                        method: "DELETE",
+                        headers: { "X-CSRFToken": csrf }
+                    });
+
+                    renderTable();
+                });
+
+                tbody.appendChild(tr);
+            });
+
+            renderPagination();
+        }
+
+
+        function renderPagination() {
+            const totalPages = Math.ceil(robots.length / ITEMS_PER_PAGE);
+            const pagDiv = document.getElementById("pagination");
+            pagDiv.innerHTML = "";
+
+            for (let i = 1; i <= totalPages; i++) {
+                pagDiv.innerHTML += `
+                    <button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>
+                `;
+            }
+        }
+
+        function goPage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        function deleteRobot(robot_id) {
+            console.log("Delete called with", robot_id); // 함수 호출 체크
+            robots = robots.filter(r => r.robot_id !== robot_id);
+            
+            renderTable(currentPage);
+        }
+
+        // Register
         document.getElementById("robotForm").addEventListener("submit", async (e) => {
             e.preventDefault();
+
             const data = {
-                robot_id: document.getElementById("robot_id").value,
-                model: document.getElementById("model").value,
-                firmware_version: document.getElementById("firmware_version").value,
-                location: document.getElementById("location").value
+                robot_id: robot_id.value,
+                model: model.value,
+                firmware_version: firmware_version.value,
+                location: robot_location.value
             };
+
+            const csrf = await getCSRF()
+
+            // JWT 기반 API 호출
             const res = await fetch("/robots/management/", {
                 method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": csrftoken
-                },
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
                 body: JSON.stringify(data)
             });
+
             if (res.ok) {
-                alert("Robot registered successfully!");
-                location.href = "/robots/management/";
+                alert("Robot registered!");
+                robots.unshift(data);  // local list에 추가 (최신순)
+                renderTable();
+                document.getElementById("robotForm").reset();
             } else {
-                alert("Failed to register robot.");
+                alert("Failed to register robot");
             }
         });
+
     </script>
 </body>
 </html>

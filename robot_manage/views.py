@@ -69,7 +69,7 @@ async def signup(request):
             print('response format is invalid') #추후 로그로 변경
             return await sync_to_async(redirect)("/error/")
     else:
-        logger.info(f'test...:{request.method}')
+        logger.info(f'invalid request...:{request.method}')
 
 @jwt_required
 async def handling_robots(request):
@@ -153,6 +153,7 @@ async def delete_robot(request, robot_id):
     
 async def put_robot(request, robot_id):
     logger.info('put method occurred!')
+    #robot_manage.html를 활용은 하되, redirect는 하지
     pass
 
 #@csrf_exempt
