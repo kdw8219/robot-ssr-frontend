@@ -75,7 +75,7 @@ async def signup(request):
 async def handling_robots(request):
     if request.method == 'GET':
         page = request.GET.get('page', 1)        # 기본값 1
-        page_per = request.GET.get('pagePer', 20) # 기본값 20
+        page_per = request.GET.get('per_page', 20) # 기본값 20
         
         params = {
             'page': int(page),
@@ -93,7 +93,10 @@ async def handling_robots(request):
                     raise ValueError("Invalid value!")
                 
                 #log 등록
-                logger.info(deserializer.validated_data.get('result'))
+                logger.info('get result : '+deserializer.validated_data.get('result'))
+                
+                start = (int(page) - 1) * int(page_per)
+                end = start + int(page_per)
                 
                 return await sync_to_async(JsonResponse)(deserializer.validated_data)
             
@@ -151,21 +154,62 @@ async def delete_robot(request, robot_id):
         logger.info('response format is invalid') #추후 로그로 변경
         return await sync_to_async(redirect)("/index/")
     
-async def put_robot(request, robot_id):
-    logger.info('put method occurred!')
-    #robot_manage.html를 활용은 하되, redirect는 하지
-    pass
+async def get_robot(request):
+    res = HTMLRenderer(request, 'robot_manage/robot_patcher.html', params={})
+    return await sync_to_async(HttpResponse)( res )
 
-#@csrf_exempt
+async def patch_robot(request):
+    load_dotenv()
+    robot_service_url = os.getenv('ROBOT_SERVICE_URL')
+    parsed_data = None
+    try:
+        parsed_data = json.loads(request.body.decode('utf-8'))
+    except json.JSONDecodeError:
+        messages.error(request, "요청 정보 확인이 필요합니다.")
+        return redirect('/error/')
+            
+    serializer = RobotRegisterSerializer(data=parsed_data)
+    serializer.is_valid(raise_exception=True)
+    payload = serializer.validated_data
+        
+    try:
+        async with httpx.AsyncClient() as client:
+            api_response = await client.patch(robot_service_url+serializer.validated_data['robot_id']+'/', json=payload)
+            print(api_response.json())
+            api_response.raise_for_status()
+            deserializer = RobotRegisterResponseSerializer(data=api_response.json())
+            if not deserializer.is_valid():
+                raise ValueError("Invalid value!")
+                
+            #log 등록
+            print(deserializer.validated_data.get('result'))
+                
+            return await sync_to_async(redirect)("/index/")
+                
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        if status == 409:
+             messages.error(request, "이미 등록된 로봇입니다.")
+        else:
+            messages.error(request, "로봇 수정 중 오류가 발생했습니다. 다시 시도해주세요.")
+                
+        return await sync_to_async(redirect)("/index/")  # 다시 로봇 등록 페이지로 
+    except ValueError as e:
+        print('response format is invalid') #추후 로그로 변경
+        return await sync_to_async(redirect)("/error/")
+
+
 async def modifying_robots(request, robot_id):
     if request.method == 'DELETE':
         logger.info('delete robot')
         return await delete_robot(request, robot_id)
         
-    elif request.method == 'PUT':
-        logger.info('modifying works')
-        return await put_robot(request, robot_id)
-        
+    elif request.method == 'GET': #데이터는 sessionStorage에 저장되어 있음.
+        logger.info('get modifying pages')
+        return await get_robot(request)
+    elif request.method == 'PATCH':
+        logger.info('patch data')
+        return await patch_robot(request)
     else:
         pass
     

@@ -138,7 +138,7 @@
             });
         }
 
-        const perPage = 100;
+        const perPage = 10;
         let currentPage = 1;
         let totalRobots = 0;
 
@@ -193,7 +193,12 @@
                 // Edit 버튼 클릭
                 row.querySelector(".editBtn").addEventListener("click", e => {
                     e.stopPropagation();
-                    window.location.href = `/robots/${r.id}/`;
+
+                    // 클릭한 로봇 데이터 저장
+                    sessionStorage.setItem("edit_robot", JSON.stringify(r));
+
+                    // 수정 페이지로 이동
+                    window.location.href = `/robots/${r.robot_id}/`;
                 });
 
                 // Delete 버튼 클릭
