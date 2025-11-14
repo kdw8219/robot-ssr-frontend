@@ -4,16 +4,18 @@ from auth_service_handler.decorator import jwt_required
 from dotenv import load_dotenv
 import os
 import httpx
+import logging
+import json
+import django.contrib.messages as messages
+from asgiref.sync import sync_to_async
 from robot_manage.dto.robot_register_serializer import RobotRegisterSerializer
 from robot_manage.dto.robot_register_response_serializer import RobotRegisterResponseSerializer
 from robot_manage.dto.robot_get_response_serializer import RobotGetResponseSerializer
-import django.contrib.messages as messages
-import logging
-from asgiref.sync import sync_to_async
-import json
+from robot_manage.dto.robot_del_response_serializer import RobotDelResponseSerializer
+from django.views.decorators.csrf import csrf_exempt
+
 
 logger = logging.getLogger('user_manage')
-robot_infos=[]
 
 def HTMLRenderer(request, template_name='user_manage/index.html', params={}):
     return render(request, template_name, params)
@@ -27,6 +29,7 @@ async def signup(request):
         return await sync_to_async(HttpResponse)( res )
     
     elif request.method == 'POST':
+        logger.info('work here?')
         load_dotenv()
         robot_service_url = os.getenv('ROBOT_SERVICE_URL')
         parsed_data = None
@@ -65,12 +68,12 @@ async def signup(request):
         except ValueError as e:
             print('response format is invalid') #추후 로그로 변경
             return await sync_to_async(redirect)("/error/")
-
+    else:
+        logger.info(f'test...:{request.method}')
 
 @jwt_required
 async def handling_robots(request):
     if request.method == 'GET':
-        global robot_infos
         page = request.GET.get('page', 1)        # 기본값 1
         page_per = request.GET.get('pagePer', 20) # 기본값 20
         
@@ -91,8 +94,6 @@ async def handling_robots(request):
                 
                 #log 등록
                 logger.info(deserializer.validated_data.get('result'))
-                #매번 업데이트 해준다. get 해올 때마다. 대신에 가져오는 수가 적기 때문에 메모리 유지해도 지장 없음
-                robot_infos = deserializer.validated_data
                 
                 return await sync_to_async(JsonResponse)(deserializer.validated_data)
             
@@ -117,34 +118,26 @@ async def handling_robots(request):
         return await sync_to_async(redirect)("/index/")
 
 
-
-async def delete_robot(request):
-    global robot_infos
-    page = request.GET.get('page', 1)        # 기본값 1
-    page_per = request.GET.get('pagePer', 20) # 기본값 20
-        
-    params = {
-        'page': int(page),
-        'page_per': int(page_per)
-    }
+@csrf_exempt
+async def delete_robot(request, robot_id):
+    
     #이대로만 가면 지우기 너무 쉽게 되어 있기 때문에 사용자 정보도 같이 넣어준다(role, 권한 등등 넣기 위함)
     #당장은 그냥 지울 수 있게 구현.
     try:
         async with httpx.AsyncClient() as client:
             load_dotenv()
             robot_service_url = os.getenv('ROBOT_SERVICE_URL')
-            api_response = await client.delete(robot_service_url, params = params)
+            logger.info(f'delete command : {robot_service_url+robot_id+'/'}')
+            api_response = await client.delete(robot_service_url+robot_id+'/', params = {})
             api_response.raise_for_status()
-            deserializer = RobotGetResponseSerializer(data=api_response.json())
+            deserializer = RobotDelResponseSerializer(data=api_response.json())
             if not deserializer.is_valid():
                 raise ValueError("Invalid value!")
                 
             #log 등록
             logger.info(deserializer.validated_data.get('result'))
             #매번 업데이트 해준다. get 해올 때마다. 대신에 가져오는 수가 적기 때문에 메모리 유지해도 지장 없음
-            robot_infos = deserializer.validated_data
-                
-            return await sync_to_async(JsonResponse)(deserializer.validated_data)
+            return await sync_to_async(redirect)("/index/")
             
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
@@ -158,21 +151,29 @@ async def delete_robot(request):
         logger.info('response format is invalid') #추후 로그로 변경
         return await sync_to_async(redirect)("/index/")
     
-async def put_robot(request):
+async def put_robot(request, robot_id):
     logger.info('put method occurred!')
     pass
 
+#@csrf_exempt
 async def modifying_robots(request, robot_id):
-    logger.info('get modifying!')
+    if request.method == 'DELETE':
+        logger.info('delete robot')
+        return await delete_robot(request, robot_id)
+        
+    elif request.method == 'PUT':
+        logger.info('modifying works')
+        return await put_robot(request, robot_id)
+        
+    else:
+        pass
+    
     #show robot_mangae.html view and set data
     #after fixing data, send it to server using put_robot function
-    response = redirect('/robots/management')
+    response = redirect('/robots/management/')
     return response
 
 async def detail_view_robots(request, robot_id):
-    global robot_infos
-    #item = robot_infos.get(robot_id)
-    print(robot_infos)
     res = HTMLRenderer(request, 'robot_manage/robot_detail.html', params={'robotId':robot_id})
     return await sync_to_async(HttpResponse)( res ) 
     

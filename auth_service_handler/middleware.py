@@ -22,7 +22,9 @@ class JWTAuthenticationMiddleware:
         logger.info(f'[JWTAuthMiddleware] check path : {request.path}')
         if request.path[-1] != '/':
             request.path += '/'
+            logger.info(f'[JWTAuthMiddleware] check path : {request.path}')
             
+
         if request.path in self.public_paths:
             return self.get_response(request)
         
