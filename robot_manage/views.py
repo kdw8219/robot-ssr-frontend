@@ -29,6 +29,7 @@ async def signup(request):
         return await sync_to_async(HttpResponse)( res )
     
     elif request.method == 'POST':
+        logger.info('work here?')
         load_dotenv()
         robot_service_url = os.getenv('ROBOT_SERVICE_URL')
         parsed_data = None
@@ -67,7 +68,8 @@ async def signup(request):
         except ValueError as e:
             print('response format is invalid') #추후 로그로 변경
             return await sync_to_async(redirect)("/error/")
-
+    else:
+        logger.info(f'test...:{request.method}')
 
 @jwt_required
 async def handling_robots(request):
@@ -125,6 +127,7 @@ async def delete_robot(request, robot_id):
         async with httpx.AsyncClient() as client:
             load_dotenv()
             robot_service_url = os.getenv('ROBOT_SERVICE_URL')
+            logger.info(f'delete command : {robot_service_url+robot_id+'/'}')
             api_response = await client.delete(robot_service_url+robot_id+'/', params = {})
             api_response.raise_for_status()
             deserializer = RobotDelResponseSerializer(data=api_response.json())
@@ -156,18 +159,18 @@ async def put_robot(request, robot_id):
 async def modifying_robots(request, robot_id):
     if request.method == 'DELETE':
         logger.info('delete robot')
-        await delete_robot(request, robot_id)
-        pass
+        return await delete_robot(request, robot_id)
+        
     elif request.method == 'PUT':
         logger.info('modifying works')
-        await put_robot(request, robot_id)
-        pass
+        return await put_robot(request, robot_id)
+        
     else:
         pass
     
     #show robot_mangae.html view and set data
     #after fixing data, send it to server using put_robot function
-    response = redirect('/robots/management')
+    response = redirect('/robots/management/')
     return response
 
 async def detail_view_robots(request, robot_id):

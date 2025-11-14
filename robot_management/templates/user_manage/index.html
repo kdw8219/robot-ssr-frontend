@@ -201,7 +201,7 @@
                     e.stopPropagation();
                     if (confirm(`정말 ${r.robot_id}를 삭제하시겠습니까?`)) {
                         
-                        fetch(`/robots/${r.id}/`, { method: "DELETE", credentials:"include", headers:{"X-CSRFToken": csrf} })
+                        fetch(`/robots/${r.robot_id}/`, { method: "DELETE", credentials:"include", headers:{"X-CSRFToken": csrf} })
                             .then(res => {
                                 if (res.ok) renderTable(currentPage);
                                 else alert("삭제 실패");
