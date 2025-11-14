@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Robots</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Modifying Robot</h2>
+        <form id="robotForm">
+            {% csrf_token %}
+            <label for="robot_id">Robot Id</label>
+            <input type="text" id="robot_id" required readonly>
+            <label for="model">Robot Model</label>
+            <input type="text" id="model" required>
+            <label for="firmware_version">Robot Firmware</label>
+            <input type="text" id="firmware_version" required>
+            <label for="location">location</label>
+            <input type="text" id="location" required>
+            <button type="submit">Modifying</button>
+        </form>
+    </div>
+
+    <script>
+        function getCSRF() {
+            let cookieValue = null;
+            const cookies = document.cookie.split(';');
+
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith("csrftoken=")) {
+                    cookieValue = cookie.substring("csrftoken=".length);
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCSRF();
+        document.getElementById("robotForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const data = {
+                robot_id: document.getElementById("robot_id").value,
+                model: document.getElementById("model").value,
+                firmware_version: document.getElementById("firmware_version").value,
+                location: document.getElementById("location").value
+            };
+            const res = await fetch(`/robots/${data.robot_id}/`, {
+                method: "PATCH",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrftoken
+                },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                alert("Robot registered successfully!");
+                location.href = "/index/";
+            } else {
+                alert("Failed to register robot.");
+            }
+        });
+
+        const robotData = sessionStorage.getItem("edit_robot");
+
+        if (!robotData) {
+            alert("수정할 데이터가 없습니다.");
+        } else {
+            const robot = JSON.parse(robotData);
+
+            document.getElementById("robot_id").value = robot.robot_id;
+            document.getElementById("model").value = robot.model;
+            document.getElementById("firmware_version").value = robot.firmware_version;
+            document.getElementById("location").value = robot.location;
+        }
+    </script>
+</body>
+</html>
