@@ -120,8 +120,6 @@ async def handling_robots(request):
         logger.info('unexpected request.. '+ request.method) #추후 로그로 변경
         return await sync_to_async(redirect)("/index/")
 
-
-@csrf_exempt
 async def delete_robot(request, robot_id):
     
     #이대로만 가면 지우기 너무 쉽게 되어 있기 때문에 사용자 정보도 같이 넣어준다(role, 권한 등등 넣기 위함)
