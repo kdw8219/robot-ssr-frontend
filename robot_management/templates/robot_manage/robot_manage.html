@@ -73,6 +73,9 @@
             <label for="robot_id">Robot Id</label>
             <input type="text" id="robot_id" required>
 
+            <label for="robot_secret">Robot Secret</label>
+            <input type="password" id="robot_secret" placeholder="Password" required>
+
             <label for="model">Robot Model</label>
             <input type="text" id="model" required>
 
@@ -227,9 +230,10 @@
                 alert("You can't use special characters (ex.?, #, <, >)");
                 return ;
             }
-
+            console.log('works?')
             const data = {
                 robot_id: robot_id.value,
+                robot_secret : robot_secret.value,
                 model: model.value,
                 firmware_version: firmware_version.value,
                 location: robot_location.value
