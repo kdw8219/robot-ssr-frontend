@@ -114,8 +114,8 @@ async def handling_robots(request):
         
     elif request.method == 'DELETE':
         return delete_robot(request)
-    elif request.method == 'PUT':
-        return put_robot(request)
+    elif request.method == 'PATCH':
+        return patch_robot(request)
     else:
         logger.info('unexpected request.. '+ request.method) #추후 로그로 변경
         return await sync_to_async(redirect)("/index/")
