@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +24,9 @@
             align-items: center;
         }
 
-        .header-left h2 { margin: 0; }
+        .header-left h2 {
+            margin: 0;
+        }
 
         .header-right button {
             margin-left: 10px;
@@ -37,7 +40,9 @@
             transition: background-color 0.2s;
         }
 
-        .header-right button:hover { background-color: #e6e6e6; }
+        .header-right button:hover {
+            background-color: #e6e6e6;
+        }
 
         main {
             flex-grow: 1;
@@ -52,15 +57,21 @@
             margin-top: 20px;
         }
 
-        th, td {
+        th,
+        td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
 
-        th { background-color: #f8f8f8; }
+        th {
+            background-color: #f8f8f8;
+        }
 
-        tr:hover { background-color: #f0f8ff; cursor: pointer; }
+        tr:hover {
+            background-color: #f0f8ff;
+            cursor: pointer;
+        }
 
         .pagination {
             text-align: center;
@@ -80,7 +91,8 @@
             color: white;
         }
 
-        .editBtn, .deleteBtn {
+        .editBtn,
+        .deleteBtn {
             padding: 4px 8px;
             margin-right: 4px;
             border: none;
@@ -89,20 +101,33 @@
             font-size: 0.9em;
         }
 
-        .editBtn { background-color: #ffc107; color: #000; }
-        .editBtn:hover { background-color: #e0a800; }
+        .editBtn {
+            background-color: #ffc107;
+            color: #000;
+        }
 
-        .deleteBtn { background-color: #dc3545; color: #fff; }
-        .deleteBtn:hover { background-color: #c82333; }
+        .editBtn:hover {
+            background-color: #e0a800;
+        }
+
+        .deleteBtn {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .deleteBtn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
+
 <body>
     <header>
         <div class="header-left">
             <h2>Details of {{ robotId }}</h2>
         </div>
         <div class="header-right">
-            <button id="movingBackBtn" disabled>Return</button>
+            <button id="movingBackBtn">Return</button>
         </div>
     </header>
 
@@ -110,15 +135,16 @@
         <h3>Details</h3>
 
 
-    <script>
-        const role = "{{ role }}";
-        const returnButton = document.getElementById("movingBackBtn");
+        <script>
+            const role = "{{ role }}";
+            const returnButton = document.getElementById("movingBackBtn");
 
-        {
-            returnButton.addEventListener("click", () => {
-                location.href = "/index/";
-            });
-        }
-    </script>
+            {
+                returnButton.addEventListener("click", () => {
+                    location.href = "/index/";
+                });
+            }
+        </script>
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <title>Manage Robots</title>
@@ -17,7 +18,7 @@
             background-color: white;
             padding: 30px 40px;
             border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             width: 400px;
         }
 
@@ -57,6 +58,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="form-container">
         <h2>Modifying Robot</h2>
@@ -103,40 +105,40 @@
             if (forbidden.test(data.robot_id)) {
                 e.preventDefault();
                 alert("You can't use special characters (ex.?, #, <, >)");
-                return ;
+                return;
             }
 
             if (forbidden.test(data.model)) {
                 e.preventDefault();
                 alert("You can't use special characters (ex.?, #, <, >)");
-                return ;
+                return;
             }
 
             if (forbidden.test(data.firmware_version)) {
                 e.preventDefault();
                 alert("You can't use special characters (ex.?, #, <, >)");
-                return ;
+                return;
             }
 
             if (forbidden.test(data.location)) {
                 e.preventDefault();
                 alert("You can't use special characters (ex.?, #, <, >)");
-                return ;
+                return;
             }
 
             const res = await fetch(`/robots/${data.robot_id}/`, {
                 method: "PATCH",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                     "X-CSRFToken": csrftoken
                 },
                 body: JSON.stringify(data)
             });
             if (res.ok) {
-                alert("Robot registered successfully!");
+                alert("Robot patched successfully!");
                 location.href = "/index/";
             } else {
-                alert("Failed to register robot.");
+                alert("Failed to patch robot.");
             }
         });
 
@@ -154,4 +156,5 @@
         }
     </script>
 </body>
+
 </html>
