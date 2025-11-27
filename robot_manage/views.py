@@ -9,9 +9,10 @@ import json
 import django.contrib.messages as messages
 from asgiref.sync import sync_to_async
 from robot_manage.dto.robot_register_serializer import RobotRegisterSerializer
-from robot_manage.dto.robot_register_response_serializer import RobotRegisterResponseSerializer
+from robot_manage.dto.robot_register_response_serializer import RobotRegisterResponseSerializer as RobotNormalResponseSerializer
 from robot_manage.dto.robot_get_response_serializer import RobotGetResponseSerializer
 from robot_manage.dto.robot_del_response_serializer import RobotDelResponseSerializer
+from robot_manage.dto.robot_patch_serializer import RobotPatchSerializer
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -48,7 +49,7 @@ async def signup(request):
                 api_response = await client.post(robot_service_url, json=payload)
                 print(api_response.json())
                 api_response.raise_for_status()
-                deserializer = RobotRegisterResponseSerializer(data=api_response.json())
+                deserializer = RobotNormalResponseSerializer(data=api_response.json())
                 if not deserializer.is_valid():
                     raise ValueError("Invalid value!")
                 
@@ -166,7 +167,7 @@ async def patch_robot(request):
         messages.error(request, "요청 정보 확인이 필요합니다.")
         return redirect('/error/')
             
-    serializer = RobotRegisterSerializer(data=parsed_data)
+    serializer = RobotPatchSerializer(data=parsed_data)
     serializer.is_valid(raise_exception=True)
     payload = serializer.validated_data
         
@@ -175,7 +176,7 @@ async def patch_robot(request):
             api_response = await client.patch(robot_service_url+serializer.validated_data['robot_id']+'/', json=payload)
             print(api_response.json())
             api_response.raise_for_status()
-            deserializer = RobotRegisterResponseSerializer(data=api_response.json())
+            deserializer = RobotNormalResponseSerializer(data=api_response.json())
             if not deserializer.is_valid():
                 raise ValueError("Invalid value!")
                 
