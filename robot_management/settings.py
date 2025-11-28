@@ -149,6 +149,15 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True  # 쿠키 포함 요청 허용
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://127.0.0.1",
+    "https://localhost",
+    "https://127.0.0.1:443",
+    "https://localhost:443",
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # 로그 디렉토리 생성
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
