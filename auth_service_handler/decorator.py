@@ -31,10 +31,11 @@ def jwt_required(view_func):
             )
             
             if response.status_code == 200 or response.status_code == 201:
+                logger.info(f'refresh success {response.status_code}')    
                 response_string = response.content.decode()
                 data = json.loads(response_string)
-                
-                return True, {'access_token' : data['access_token'] ,'refresh_token': data['refresh_token']}
+                logger.info(f'token loading complete {data['access_token']}')    
+                return True, {'access_token' : data['access_token'] ,'refresh_token': refresh_token}
              
             return False, None
         except Exception as e:
@@ -53,9 +54,19 @@ def jwt_required(view_func):
             is_valid, payload = await refresh_tokens(client, refresh_token)
             if is_valid:
                 # 토큰이 유효하면 access token 취득 후 단말로 전달
-                logger.debug("refresh token is valid")
+                logger.info("refresh token is valid")
                 request.COOKIES['access_token'] = payload.get('access_token')
-                response = view_func(request, *args, **kwargs)
+                if asyncio.iscoroutinefunction(view_func):
+                    response = await view_func(request, *args, **kwargs)
+                else:
+                    response = view_func(request, *args, **kwargs)
+                
+                response.set_cookie('access_token',
+                            payload.get('access_token'), 
+                            httponly=True, 
+                            secure=True, 
+                            samesite='Lax')    
+                
                 return response
             
             else:
