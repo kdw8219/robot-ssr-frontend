@@ -218,6 +218,11 @@ async def modifying_robots(request, robot_id):
     return response
 
 async def detail_view_robots(request, robot_id):
+    
+    
+    
+    
+    
     res = HTMLRenderer(request, 'robot_manage/robot_detail.html', params={'robotId':robot_id})
     return await sync_to_async(HttpResponse)( res ) 
     
