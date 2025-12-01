@@ -118,6 +118,12 @@
         .deleteBtn:hover {
             background-color: #c82333;
         }
+
+        #robot-video {
+            width: 100%;
+            max-width: 800px;
+            background: black;
+        }
     </style>
 </head>
 
@@ -129,6 +135,13 @@
         <div class="header-right">
             <button id="movingBackBtn">Return</button>
         </div>
+
+        <video id="robot-video" autoplay playsinline></video>
+
+        <script>
+            const ROBOT_ID = "{{ robotId }}";  // Django에서 전달받음
+        </script>
+        <script src="../../../static/js/robot_webrtc.js"></script>
     </header>
 
     <main>
