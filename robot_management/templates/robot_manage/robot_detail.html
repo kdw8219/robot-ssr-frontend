@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robot Dashboard</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -90,9 +91,10 @@
 </head>
 
 <body>
+
     <header>
         <div class="header-left">
-            <h2>Robot Detail (ID: {{ robotId }})</h2>
+            <h2>Details of {{ robotId }}</h2>
         </div>
 
         <div class="header-right">
@@ -122,10 +124,7 @@
         const ROBOT_ID = "{{ robotId }}";
     </script>
 
-    <!-- WebRTC Signaling -->
-    <script type="module" src="/static/js/robot_webrtc.js"></script>
-
-    <!-- Robot Control Channel -->
+    <!-- WebRTC + Control Logic -->
     <script type="module">
         import {
             startRobotControlChannel,
@@ -136,56 +135,76 @@
             closeControlChannel
         } from "/static/js/robot_control.js";
 
-        import { startWebRTCConnection, disconnectWebRTC } from "/static/js/robot_webrtc.js";
+        import {
+            startWebRTCConnection,
+            disconnectWebRTC
+        } from "/static/js/robot_webrtc.js";
 
-        const connectButton = document.getElementById("connectRobotBtn");
-        const disconnectButton = document.getElementById("disconnectRobotBtn");
-        const returnButton = document.getElementById("movingBackBtn");
 
-        returnButton.addEventListener("click", () => {
-            location.href = "/index/";
-        });
+        /** ------------------------------
+         * SAFE EVENT BINDING (DOMContentLoaded)
+         * ------------------------------ */
+        document.addEventListener("DOMContentLoaded", () => {
 
-        // 🔥 CONNECT: WebRTC + Control WS
-        connectButton.addEventListener("click", async () => {
-            connectButton.disabled = true;
-            connectButton.textContent = "Connecting...";
+            const connectButton = document.getElementById("connectRobotBtn");
+            const disconnectButton = document.getElementById("disconnectRobotBtn");
+            const returnButton = document.getElementById("movingBackBtn");
 
-            try {
-                await startWebRTCConnection(ROBOT_ID);
-                await startRobotControlChannel(ROBOT_ID);
+            /** RETURN BUTTON FIX */
+            returnButton.addEventListener("click", () => {
+                console.log("[UI] Return button clicked");
+                cleanupConnections();
+                window.location.href = "/index/";
+            });
 
-                connectButton.textContent = "Connected";
-                connectButton.style.backgroundColor = "#28a745";
-                connectButton.style.color = "#fff";
+            /** CONNECT ROBOT */
+            connectButton.addEventListener("click", async () => {
+                connectButton.disabled = true;
+                connectButton.textContent = "Connecting...";
 
-                console.log("[UI] Robot connected completely");
-            } catch (err) {
-                console.error("Connect failed:", err);
-                alert("Failed to connect to robot.");
+                try {
+                    await startWebRTCConnection(ROBOT_ID);
+                    await startRobotControlChannel(ROBOT_ID);
+
+                    connectButton.textContent = "Connected";
+                    connectButton.style.backgroundColor = "#28a745";
+                    connectButton.style.color = "#fff";
+                } catch (err) {
+                    console.error("Connect failed:", err);
+                    alert("Failed to connect to robot.");
+                    connectButton.disabled = false;
+                    connectButton.textContent = "Connect Robot";
+                }
+            });
+
+            /** MANUAL DISCONNECT */
+            disconnectButton.addEventListener("click", () => {
+                cleanupConnections();
+            });
+
+            /** CLEANUP FUNCTION */
+            function cleanupConnections() {
+                console.log("[Cleanup] Closing WebRTC & WebSockets...");
+
+                disconnectWebRTC();
+                closeControlChannel();
+
                 connectButton.disabled = false;
                 connectButton.textContent = "Connect Robot";
+                connectButton.style.backgroundColor = "#fff";
+                connectButton.style.color = "#007bff";
             }
+
+            /** AUTO CLEANUP: page reload, back, exit */
+            window.addEventListener("beforeunload", cleanupConnections);
+            window.addEventListener("pagehide", cleanupConnections);
+
+            /** expose control funcs to HTML buttons */
+            window.move = move;
+            window.stop = stop;
+            window.emergencyStop = emergencyStop;
+            window.dock = dock;
         });
-
-        // 🔥 DISCONNECT
-        disconnectButton.addEventListener("click", () => {
-            disconnectWebRTC();
-            closeControlChannel();
-
-            connectButton.disabled = false;
-            connectButton.textContent = "Connect Robot";
-            connectButton.style.backgroundColor = "#fff";
-            connectButton.style.color = "#007bff";
-
-            console.log("[UI] Robot disconnected");
-        });
-
-        // expose functions to global scope (HTML buttons)
-        window.move = move;
-        window.stop = stop;
-        window.emergencyStop = emergencyStop;
-        window.dock = dock;
     </script>
 
 </body>

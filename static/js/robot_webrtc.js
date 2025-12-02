@@ -2,7 +2,10 @@ let pc = null;
 let ws = null;
 let localRobotId = null;
 
-function connectWebRTC(robotId) {
+// -----------------------------------------
+// Public function: Start WebRTC connection
+// -----------------------------------------
+export function startWebRTCConnection(robotId) {
     localRobotId = robotId;
 
     ws = new WebSocket(`ws://${location.host}/ws/screen/`);
@@ -21,14 +24,54 @@ function connectWebRTC(robotId) {
             case "robot_offer":
                 await handleOffer(msg.offer);
                 break;
+
             case "robot_ice":
-                await pc.addIceCandidate(msg.ice);
+                if (pc) {
+                    await pc.addIceCandidate(msg.ice);
+                }
                 break;
         }
     };
 
     createPeerConnection();
 }
+
+
+// -----------------------------------------
+// Public function: Disconnect WebRTC
+// -----------------------------------------
+export function disconnectWebRTC() {
+    console.log("Disconnecting WebRTC…");
+
+    // Close PeerConnection
+    if (pc) {
+        pc.getSenders().forEach(sender => {
+            try { sender.track?.stop(); } catch (_) { }
+        });
+
+        pc.close();
+        pc = null;
+    }
+
+    // Close WebSocket
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+
+    // Clear video screen (optional)
+    const videoElem = document.getElementById("robot-video");
+    if (videoElem) {
+        videoElem.srcObject = null;
+    }
+
+    localRobotId = null;
+}
+
+
+// -----------------------------------------
+// Internal helper functions (not exported)
+// -----------------------------------------
 
 function createPeerConnection() {
     pc = new RTCPeerConnection({
@@ -42,7 +85,7 @@ function createPeerConnection() {
     };
 
     pc.onicecandidate = (event) => {
-        if (event.candidate) {
+        if (event.candidate && ws) {
             ws.send(JSON.stringify({
                 type: "client_ice",
                 robot_id: localRobotId,
@@ -64,8 +107,3 @@ async function handleOffer(offer) {
         answer: answer
     }));
 }
-
-window.addEventListener("DOMContentLoaded", () => {
-    const robotId = window.ROBOT_ID;
-    connectWebRTC(robotId);
-});
