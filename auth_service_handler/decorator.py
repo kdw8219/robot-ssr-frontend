@@ -9,6 +9,7 @@ import json
 from utils.views import validate_access_token
 import logging
 import asyncio
+from utils import httpClient as hc
 
 logger = logging.getLogger("auth_service_handler")
 
@@ -43,38 +44,36 @@ def jwt_required(view_func):
             return False, None
         
     async def refresh_token_process(request, *args, **kwargs):
+        # 액세스 토큰이 만료된 경우, 리프레시 토큰으로 갱신 시도
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return JsonResponse({'error': 'Refresh token missing'}, status=401)
         
-        async with httpx.AsyncClient() as client:
-            # 액세스 토큰이 만료된 경우, 리프레시 토큰으로 갱신 시도
-            refresh_token = request.COOKIES.get('refresh_token')
-            if not refresh_token:
-                return JsonResponse({'error': 'Refresh token missing'}, status=401)
-            
-            # refresh_token 토큰 검증
-            is_valid, payload = await refresh_tokens(client, refresh_token)
-            if is_valid:
-                # 토큰이 유효하면 access token 취득 후 단말로 전달
-                logger.info("refresh token is valid")
-                request.COOKIES['access_token'] = payload.get('access_token')
-                if asyncio.iscoroutinefunction(view_func):
-                    response = await view_func(request, *args, **kwargs)
-                else:
-                    response = view_func(request, *args, **kwargs)
-                
-                response.set_cookie('access_token',
-                            payload.get('access_token'), 
-                            httponly=True, 
-                            secure=True, 
-                            samesite='Lax')    
-                
-                return response
-            
+        # refresh_token 토큰 검증
+        is_valid, payload = await refresh_tokens(hc.async_client, refresh_token)
+        if is_valid:
+            # 토큰이 유효하면 access token 취득 후 단말로 전달
+            logger.info("refresh token is valid")
+            request.COOKIES['access_token'] = payload.get('access_token')
+            if asyncio.iscoroutinefunction(view_func):
+                response = await view_func(request, *args, **kwargs)
             else:
-                logger.error("refresh token is invalid")
-                response = redirect('/login')
-                response.delete_cookie('refresh_token')
-                response.delete_cookie('access_token')
-                return response
+                response = view_func(request, *args, **kwargs)
+            
+            response.set_cookie('access_token',
+                        payload.get('access_token'), 
+                        httponly=True, 
+                        secure=True, 
+                        samesite='Lax')    
+            
+            return response
+        
+        else:
+            logger.error("refresh token is invalid")
+            response = redirect('/login')
+            response.delete_cookie('refresh_token')
+            response.delete_cookie('access_token')
+            return response
     
     @wraps(view_func)
     async def _wrapped_view(request, *args, **kwargs):

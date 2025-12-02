@@ -13,7 +13,7 @@ from robot_manage.dto.robot_register_response_serializer import RobotRegisterRes
 from robot_manage.dto.robot_get_response_serializer import RobotGetResponseSerializer
 from robot_manage.dto.robot_del_response_serializer import RobotDelResponseSerializer
 from robot_manage.dto.robot_patch_serializer import RobotPatchSerializer
-from django.views.decorators.csrf import csrf_exempt
+from utils import httpClient as hc
 
 
 logger = logging.getLogger('user_manage')
@@ -45,18 +45,17 @@ async def signup(request):
         payload = serializer.validated_data
         
         try:
-            async with httpx.AsyncClient() as client:
-                api_response = await client.post(robot_service_url, json=payload)
-                print(api_response.json())
-                api_response.raise_for_status()
-                deserializer = RobotNormalResponseSerializer(data=api_response.json())
-                if not deserializer.is_valid():
-                    raise ValueError("Invalid value!")
-                
-                #log 등록
-                print(deserializer.validated_data.get('result'))
-                
-                return await sync_to_async(redirect)("/robots/management/")
+            api_response = await hc.async_client.post(robot_service_url, json=payload)
+            print(api_response.json())
+            api_response.raise_for_status()
+            deserializer = RobotNormalResponseSerializer(data=api_response.json())
+            if not deserializer.is_valid():
+                raise ValueError("Invalid value!")
+            
+            #log 등록
+            print(deserializer.validated_data.get('result'))
+            
+            return await sync_to_async(redirect)("/robots/management/")
                 
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
@@ -84,22 +83,21 @@ async def handling_robots(request):
         }
         
         try:
-            async with httpx.AsyncClient() as client:
-                load_dotenv()
-                robot_service_url = os.getenv('ROBOT_SERVICE_URL')
-                api_response = await client.get(robot_service_url, params = params)
-                api_response.raise_for_status()
-                deserializer = RobotGetResponseSerializer(data=api_response.json())
-                if not deserializer.is_valid():
-                    raise ValueError("Invalid value!")
-                
-                #log 등록
-                logger.info('get result : '+deserializer.validated_data.get('result'))
-                
-                start = (int(page) - 1) * int(page_per)
-                end = start + int(page_per)
-                
-                return await sync_to_async(JsonResponse)(deserializer.validated_data)
+            load_dotenv()
+            robot_service_url = os.getenv('ROBOT_SERVICE_URL')
+            api_response = await hc.async_client.get(robot_service_url, params = params)
+            api_response.raise_for_status()
+            deserializer = RobotGetResponseSerializer(data=api_response.json())
+            if not deserializer.is_valid():
+                raise ValueError("Invalid value!")
+            
+            #log 등록
+            logger.info('get result : '+deserializer.validated_data.get('result'))
+            
+            start = (int(page) - 1) * int(page_per)
+            end = start + int(page_per)
+            
+            return await sync_to_async(JsonResponse)(deserializer.validated_data)
             
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
@@ -126,20 +124,19 @@ async def delete_robot(request, robot_id):
     #이대로만 가면 지우기 너무 쉽게 되어 있기 때문에 사용자 정보도 같이 넣어준다(role, 권한 등등 넣기 위함)
     #당장은 그냥 지울 수 있게 구현.
     try:
-        async with httpx.AsyncClient() as client:
-            load_dotenv()
-            robot_service_url = os.getenv('ROBOT_SERVICE_URL')
-            logger.info(f'delete command : {robot_service_url+robot_id+'/'}')
-            api_response = await client.delete(robot_service_url+robot_id+'/', params = {})
-            api_response.raise_for_status()
-            deserializer = RobotDelResponseSerializer(data=api_response.json())
-            if not deserializer.is_valid():
-                raise ValueError("Invalid value!")
-                
-            #log 등록
-            logger.info(deserializer.validated_data.get('result'))
-            #매번 업데이트 해준다. get 해올 때마다. 대신에 가져오는 수가 적기 때문에 메모리 유지해도 지장 없음
-            return await sync_to_async(redirect)("/index/")
+        load_dotenv()
+        robot_service_url = os.getenv('ROBOT_SERVICE_URL')
+        logger.info(f'delete command : {robot_service_url+robot_id+'/'}')
+        api_response = await hc.async_client.delete(robot_service_url+robot_id+'/', params = {})
+        api_response.raise_for_status()
+        deserializer = RobotDelResponseSerializer(data=api_response.json())
+        if not deserializer.is_valid():
+            raise ValueError("Invalid value!")
+            
+        #log 등록
+        logger.info(deserializer.validated_data.get('result'))
+        #매번 업데이트 해준다. get 해올 때마다. 대신에 가져오는 수가 적기 때문에 메모리 유지해도 지장 없음
+        return await sync_to_async(redirect)("/index/")
             
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
@@ -172,18 +169,17 @@ async def patch_robot(request):
     payload = serializer.validated_data
         
     try:
-        async with httpx.AsyncClient() as client:
-            api_response = await client.patch(robot_service_url+serializer.validated_data['robot_id']+'/', json=payload)
-            print(api_response.json())
-            api_response.raise_for_status()
-            deserializer = RobotNormalResponseSerializer(data=api_response.json())
-            if not deserializer.is_valid():
-                raise ValueError("Invalid value!")
-                
-            #log 등록
-            print(deserializer.validated_data.get('result'))
-                
-            return await sync_to_async(redirect)("/index/")
+        api_response = await hc.async_client.patch(robot_service_url+serializer.validated_data['robot_id']+'/', json=payload)
+        print(api_response.json())
+        api_response.raise_for_status()
+        deserializer = RobotNormalResponseSerializer(data=api_response.json())
+        if not deserializer.is_valid():
+            raise ValueError("Invalid value!")
+            
+        #log 등록
+        print(deserializer.validated_data.get('result'))
+            
+        return await sync_to_async(redirect)("/index/")
                 
     except httpx.HTTPStatusError as e:
         status = e.response.status_code

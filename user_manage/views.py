@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 import os
 import django.contrib.messages as messages
 from user_manage.dto.loginSerializer import LoginSerializer
-
 import logging
+from utils import httpClient as hc
 import httpx
 
 logger = logging.getLogger('user_manage')
@@ -34,9 +34,8 @@ async def login(request):
         }
         
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(api_url, json=payload, timeout= 1)
-                serializer = LoginSerializer(data = response.json())
+            response = await hc.async_client.post(api_url, json=payload, timeout= 1)
+            serializer = LoginSerializer(data = response.json())
         except httpx.TimeoutException as e:
             logger.info('async login timeout...' + str(e))
             return redirect('/error/')
@@ -89,19 +88,16 @@ async def logout(request):
     url_logout = os.getenv('AUTH_SERVICE_URL') #  refresh, access만 지운다. 사용자 정보 체크는 굳이 불필요하다.
     
     try:
-        # TODO : async view를 써서 post request 하는 부분도 바꿔야한다.
-        async with httpx.AsyncClient() as client:
-            logger.info('logout process start')
-            logger.info(url_logout)
-            await client.delete(url_logout, cookies=request.COOKIES, timeout=1)
-            logger.info('logout completed')
+        logger.info('logout process start')
+        logger.info(url_logout)
+        await hc.async_client.delete(url_logout, cookies=request.COOKIES, timeout=1)
+        logger.info('logout completed')
     except httpx.TimeoutException as e:
         logger.info('async logout timeout...' + str(e))
         return redirect('/error/')
     except Exception as e:
         logger.info('async logout unexpected...' + str(e))
-        return redirect('/error/')
-        
+        return redirect('/error/')   
     
     response = redirect('/')
     response.delete_cookie('access_token')
@@ -154,9 +150,8 @@ async def signup(request):
         }
         
         try:
-            async with httpx.AsyncClient() as client:
-                api_response = await client.post(api_url, json=payload)
-                api_response.raise_for_status()
+            api_response = await hc.async_client.post(api_url, json=payload)
+            api_response.raise_for_status()
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
             if status == 409:
