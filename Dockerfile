@@ -18,6 +18,6 @@ COPY . .
 # 로그 디렉토리 생성
 RUN mkdir -p /app/logs
 
-# Gunicorn 실행 (ASGI)
-CMD ["gunicorn", "robot_management.asgi:application", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "-w", "4"]
+# Websocket --> Daphne로 실행 변경 (ASGI)
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "robot_management.asgi:application"]
 

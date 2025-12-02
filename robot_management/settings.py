@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'user_manage',
     'auth_service_handler',
     'rest_framework',
+    'channels',
+    'streaming',
 ]
 
 MIDDLEWARE = [
@@ -214,6 +216,20 @@ LOGGING = {
             "handlers": ["file", "console"],
             "level": "DEBUG",
             "propagate": True,
+        },
+    },
+}
+
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_AUTH = os.getenv("REDIS_AUTH", None)
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
+            "password": REDIS_AUTH
         },
     },
 }

@@ -46,83 +46,45 @@
 
         main {
             flex-grow: 1;
-            padding: 20px 40px;
+            padding: 20px;
             background-color: #fff;
             overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #f8f8f8;
-        }
-
-        tr:hover {
-            background-color: #f0f8ff;
-            cursor: pointer;
-        }
-
-        .pagination {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .pagination button {
-            padding: 6px 12px;
-            margin: 0 4px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            cursor: pointer;
-        }
-
-        .pagination button.active {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .editBtn,
-        .deleteBtn {
-            padding: 4px 8px;
-            margin-right: 4px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-
-        .editBtn {
-            background-color: #ffc107;
-            color: #000;
-        }
-
-        .editBtn:hover {
-            background-color: #e0a800;
-        }
-
-        .deleteBtn {
-            background-color: #dc3545;
-            color: #fff;
-        }
-
-        .deleteBtn:hover {
-            background-color: #c82333;
         }
 
         #robot-video {
             width: 100%;
             max-width: 800px;
+            height: 450px;
             background: black;
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        .control-panel {
+            margin-top: 20px;
+        }
+
+        .control-panel button {
+            padding: 10px 16px;
+            margin: 8px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        .control-panel button:hover {
+            background-color: #0056b3;
+        }
+
+        .danger {
+            background-color: #dc3545 !important;
+        }
+
+        .danger:hover {
+            background-color: #b21f2d !important;
         }
     </style>
 </head>
@@ -130,34 +92,102 @@
 <body>
     <header>
         <div class="header-left">
-            <h2>Details of {{ robotId }}</h2>
+            <h2>Robot Detail (ID: {{ robotId }})</h2>
         </div>
+
         <div class="header-right">
+            <button id="connectRobotBtn">Connect Robot</button>
+            <button id="disconnectRobotBtn">Disconnect</button>
             <button id="movingBackBtn">Return</button>
         </div>
-
-        <video id="robot-video" autoplay playsinline></video>
-
-        <script>
-            const ROBOT_ID = "{{ robotId }}";  // Django에서 전달받음
-        </script>
-        <script src="../../../static/js/robot_webrtc.js"></script>
     </header>
 
     <main>
-        <h3>Details</h3>
+        <video id="robot-video" autoplay playsinline></video>
 
+        <h3>Control Panel</h3>
 
-        <script>
-            const role = "{{ role }}";
-            const returnButton = document.getElementById("movingBackBtn");
+        <div class="control-panel">
+            <button onclick="move('forward')">Forward</button>
+            <button onclick="move('backward')">Backward</button>
+            <button onclick="move('left')">Left</button>
+            <button onclick="move('right')">Right</button>
+            <button onclick="stop()">Stop</button>
+            <button class="danger" onclick="emergencyStop()">Emergency Stop</button>
+            <button onclick="dock()">Dock</button>
+        </div>
+    </main>
 
-            {
-                returnButton.addEventListener("click", () => {
-                    location.href = "/index/";
-                });
+    <script>
+        const ROBOT_ID = "{{ robotId }}";
+    </script>
+
+    <!-- WebRTC Signaling -->
+    <script type="module" src="/static/js/robot_webrtc.js"></script>
+
+    <!-- Robot Control Channel -->
+    <script type="module">
+        import {
+            startRobotControlChannel,
+            move,
+            stop,
+            emergencyStop,
+            dock,
+            closeControlChannel
+        } from "/static/js/robot_control.js";
+
+        import { startWebRTCConnection, disconnectWebRTC } from "/static/js/robot_webrtc.js";
+
+        const connectButton = document.getElementById("connectRobotBtn");
+        const disconnectButton = document.getElementById("disconnectRobotBtn");
+        const returnButton = document.getElementById("movingBackBtn");
+
+        returnButton.addEventListener("click", () => {
+            location.href = "/index/";
+        });
+
+        // 🔥 CONNECT: WebRTC + Control WS
+        connectButton.addEventListener("click", async () => {
+            connectButton.disabled = true;
+            connectButton.textContent = "Connecting...";
+
+            try {
+                await startWebRTCConnection(ROBOT_ID);
+                await startRobotControlChannel(ROBOT_ID);
+
+                connectButton.textContent = "Connected";
+                connectButton.style.backgroundColor = "#28a745";
+                connectButton.style.color = "#fff";
+
+                console.log("[UI] Robot connected completely");
+            } catch (err) {
+                console.error("Connect failed:", err);
+                alert("Failed to connect to robot.");
+                connectButton.disabled = false;
+                connectButton.textContent = "Connect Robot";
             }
-        </script>
+        });
+
+        // 🔥 DISCONNECT
+        disconnectButton.addEventListener("click", () => {
+            disconnectWebRTC();
+            closeControlChannel();
+
+            connectButton.disabled = false;
+            connectButton.textContent = "Connect Robot";
+            connectButton.style.backgroundColor = "#fff";
+            connectButton.style.color = "#007bff";
+
+            console.log("[UI] Robot disconnected");
+        });
+
+        // expose functions to global scope (HTML buttons)
+        window.move = move;
+        window.stop = stop;
+        window.emergencyStop = emergencyStop;
+        window.dock = dock;
+    </script>
+
 </body>
 
 </html>
