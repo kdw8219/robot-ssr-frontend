@@ -217,6 +217,11 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": True,
         },
+        "logging": {  # 개발중이라 debug
+            "handlers": ["file", "console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
     },
 }
 
@@ -228,8 +233,9 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(REDIS_HOST, REDIS_PORT)],
-            "password": REDIS_AUTH
+            "hosts": [
+                f"redis://:{REDIS_AUTH}@{REDIS_HOST}:{REDIS_PORT}/0"
+            ],
         },
     },
 }

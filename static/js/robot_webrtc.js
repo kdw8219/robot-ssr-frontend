@@ -7,8 +7,9 @@ let localRobotId = null;
 // -----------------------------------------
 export function startWebRTCConnection(robotId) {
     localRobotId = robotId;
-
-    ws = new WebSocket(`ws://${location.host}/ws/screen/`);
+    
+    const protocol = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${protocol}://${location.host}/ws/screen/${robotId}/`);
 
     ws.onopen = () => {
         ws.send(JSON.stringify({

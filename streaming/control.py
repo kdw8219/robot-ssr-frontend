@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger('streaming')
 ROBOT_HOST = os.getenv("ROBOT_API_URL", "localhost")
 
-class RobotRTCConsumer(AsyncWebsocketConsumer):
+class RobotControlConsumer(AsyncWebsocketConsumer):
     
     async def connect(self):
         self.robot_id = self.scope["url_route"]["kwargs"]["robot_id"]#url에서 id 가져오기
@@ -17,7 +17,7 @@ class RobotRTCConsumer(AsyncWebsocketConsumer):
         # 이러면 channel_name이 여럿 들어가는 구조가 됨
         # 한개 서버만 화면을 공유할 수 있도록 해야 한다.
         
-        logger.info(f'insert WebSocket...{self.robot_id} / {self.group_name}')
+        logger.info(f'insert Control WebSocket...{self.robot_id} / {self.group_name}')
         
         await self.channel_layer.group_add(self.group_name, self.channel_name) 
         
@@ -36,37 +36,49 @@ class RobotRTCConsumer(AsyncWebsocketConsumer):
             data = bytes_data
         
         payload = json.loads(data)
-        req_robot_id = payload['robot_id']
-    
-        if payload['type'] == 'client_answer':
-            await self.forward_payload(payload['type'], req_robot_id, payload['answer'])
+        req_robot_id = self.robot_id
         
-        elif payload['type'] == 'client_ice':
-            await self.forward_payload(payload['type'], req_robot_id, payload['ice'])
-        
-        elif payload['type'] == 'request_screen':
-            await self.request(req_robot_id)
-    
-    
-    async def request(self, req_robot_id):
+        '''
+        move
+        stop
+        e_stop
+        set_speed
+        dock
+        path_follow
+        '''
         try:
-            global REDIS_HOST
-            await hc.async_client.post(
-                f"{ROBOT_HOST}offer-request",
-                json={"robot_id": req_robot_id},
-                timeout=3
-            )
+            if payload['type'] == 'move':
+                await self.forward_command(payload['type'], req_robot_id, payload)
+            
+            elif payload['type'] == 'stop':
+                await self.forward_command(payload['type'], req_robot_id, payload)
+            
+            elif payload['type'] == 'e_stop':
+                await self.forward_command(payload['type'], req_robot_id, payload)
+                
+            elif payload['type'] == 'set_speed':
+                await self.forward_command(payload['type'], req_robot_id, payload)    
+                
+            elif payload['type'] == 'dock':
+                await self.forward_command(payload['type'], req_robot_id, payload)
+            
+            elif payload['type'] == 'path_follow':
+                await self.forward_command(payload['type'], req_robot_id, payload)
+            else:
+                raise Exception('Unsupported Command')
+            
         except Exception as e:
             await self.send(json.dumps({
                 "type": "webrtc_error",
-                "error": str(e),
+                "error": str(e)
             }))
         
-    async def forward_payload(self, msg_type, req_robot_id, payload):
+    
+    async def forward_command(self, msg_type, req_robot_id, payload = None):
         try:
-            global REDIS_HOST
+            global ROBOT_HOST
             await hc.async_client.post(
-                f"{ROBOT_HOST}signaling",
+                f"{ROBOT_HOST}control",
                 json={
                     "type": msg_type,
                     "robot_id": req_robot_id,
