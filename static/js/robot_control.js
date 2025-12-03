@@ -5,7 +5,9 @@ let controlReady = false;
 
 export async function startRobotControlChannel(robotId) {
     return new Promise((resolve, reject) => {
-        const wsUrl = `ws://${window.location.host}/ws/control/${robotId}/`;
+
+        const protocol = location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${protocol}://${window.location.host}/ws/control/${robotId}/`;
 
         console.log("[RobotControl] Connecting to:", wsUrl);
 
