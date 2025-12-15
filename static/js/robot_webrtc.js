@@ -10,28 +10,52 @@ const RECONNECT_INTERVAL = 1500; // 1.5 sec
 export function startWebRTCConnection(robotId) {
     localRobotId = robotId;
 
-    console.log("[WebRTC] Starting connection...");
+    console.log("[WebRTC] Starting connection for robot:", robotId);
     connectWebSocket(robotId);
 }
+
+export function disconnectWebRTC() {
+    console.log("[WebRTC] Disconnecting…");
+
+    if (pc) {
+        pc.getSenders().forEach(sender => {
+            try { sender.track?.stop(); } catch (_) {}
+        });
+        pc.close();
+    }
+
+    if (ws) ws.close();
+
+    pc = null;
+    ws = null;
+    localRobotId = null;
+
+    const videoElem = document.getElementById("robot-video");
+    if (videoElem) videoElem.srcObject = null;
+}
+
+// ==============================
+// WebSocket
+// ==============================
 
 function connectWebSocket(robotId) {
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${protocol}://${location.host}/ws/screen/${robotId}/`;
 
+    console.log("[WebRTC] Connecting WebSocket:", wsUrl);
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-        console.log("[WebSocket] Connected");
+        console.log("[WebRTC] WebSocket connected");
 
-        // Clear reconnection timer if exists
         if (wsReconnectTimer) {
             clearTimeout(wsReconnectTimer);
             wsReconnectTimer = null;
         }
 
-        // Request WebRTC offer
+        // signaling 시작 요청
         ws.send(JSON.stringify({
-            type: "request_screen",
+            type: "screen_request",
             robot_id: robotId
         }));
     };
@@ -45,7 +69,7 @@ function connectWebSocket(robotId) {
                 break;
 
             case "robot_ice":
-                if (pc) {
+                if (pc && msg.ice) {
                     try {
                         await pc.addIceCandidate(msg.ice);
                     } catch (err) {
@@ -58,76 +82,47 @@ function connectWebSocket(robotId) {
                 console.error("[WebRTC] Error from server:", msg.error);
                 restartWebRTC();
                 break;
+
+            default:
+                console.warn("[WebRTC] Unknown signaling message:", msg);
         }
     };
 
     ws.onerror = (err) => {
-        console.error("[WebSocket] Error:", err);
+        console.error("[WebRTC] WebSocket error:", err);
     };
 
     ws.onclose = () => {
-        console.warn("[WebSocket] Closed. Retrying...");
+        console.warn("[WebRTC] WebSocket closed, retrying…");
         scheduleWsReconnect();
     };
 
-    // Create PeerConnection each time WS connects
     createPeerConnection();
 }
 
-
 function scheduleWsReconnect() {
-    if (wsReconnectTimer) return; // prevent multiple loops
+    if (wsReconnectTimer) return;
 
     wsReconnectTimer = setTimeout(() => {
-        console.log("[WebSocket] Reconnecting...");
+        console.log("[WebRTC] Reconnecting WebSocket…");
         connectWebSocket(localRobotId);
     }, RECONNECT_INTERVAL);
 }
 
-
-export function disconnectWebRTC() {
-    console.log("[WebRTC] Disconnecting…");
-
-    if (pc) {
-        pc.getSenders().forEach(sender => {
-            try { sender.track?.stop(); } catch (_) { }
-        });
-        pc.close();
-    }
-
-    if (ws) ws.close();
-
-    pc = null;
-    ws = null;
-
-    localRobotId = null;
-
-    const videoElem = document.getElementById("robot-video");
-    if (videoElem) videoElem.srcObject = null;
-}
-
-function restartWebRTC() {
-    if (rtcReconnectTimer) return;
-
-    console.warn("[WebRTC] Restarting connection...");
-
-    disconnectWebRTC();
-
-    rtcReconnectTimer = setTimeout(() => {
-        rtcReconnectTimer = null;
-        startWebRTCConnection(localRobotId);
-    }, RECONNECT_INTERVAL);
-}
+// ==============================
+// WebRTC
+// ==============================
 
 function createPeerConnection() {
     pc = new RTCPeerConnection({
-        iceServers: [
-            { urls: ["stun:stun.l.google.com:19302"] }
-        ]
+        iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }]
     });
 
     pc.ontrack = (event) => {
-        document.getElementById("robot-video").srcObject = event.streams[0];
+        const videoElem = document.getElementById("robot-video");
+        if (videoElem) {
+            videoElem.srcObject = event.streams[0];
+        }
     };
 
     pc.onicecandidate = (event) => {
@@ -149,7 +144,6 @@ function createPeerConnection() {
     };
 }
 
-
 async function handleOffer(offer) {
     try {
         await pc.setRemoteDescription(offer);
@@ -166,4 +160,17 @@ async function handleOffer(offer) {
         console.error("[WebRTC] Offer handling error:", err);
         restartWebRTC();
     }
+}
+
+function restartWebRTC() {
+    if (rtcReconnectTimer) return;
+
+    console.warn("[WebRTC] Restarting connection…");
+
+    disconnectWebRTC();
+
+    rtcReconnectTimer = setTimeout(() => {
+        rtcReconnectTimer = null;
+        startWebRTCConnection(localRobotId);
+    }, RECONNECT_INTERVAL);
 }
