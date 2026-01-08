@@ -64,6 +64,9 @@ function connectWebSocket(robotId) {
         const msg = JSON.parse(e.data);
 
         switch (msg.type) {
+            case "heartbeat_check":
+                // Keepalive; no client action required.
+                break;
             case "robot_offer":
                 await handleOffer(msg.offer);
                 break;
@@ -135,6 +138,18 @@ function createPeerConnection() {
         }
     };
 
+    pc.onicecandidateerror = (event) => {
+        console.warn(
+            "[WebRTC] ICE candidate error:",
+            {
+                errorCode: event.errorCode,
+                errorText: event.errorText,
+                url: event.url,
+                hostCandidate: event.hostCandidate,
+            }
+        );
+    };
+
     pc.oniceconnectionstatechange = () => {
         console.log("[WebRTC] ICE state:", pc.iceConnectionState);
 
@@ -167,10 +182,15 @@ function restartWebRTC() {
 
     console.warn("[WebRTC] Restarting connection…");
 
+    const robotId = localRobotId;
     disconnectWebRTC();
 
     rtcReconnectTimer = setTimeout(() => {
         rtcReconnectTimer = null;
-        startWebRTCConnection(localRobotId);
+        if (robotId) {
+            startWebRTCConnection(robotId);
+        } else {
+            console.warn("[WebRTC] Restart skipped: robot_id is null");
+        }
     }, RECONNECT_INTERVAL);
 }
