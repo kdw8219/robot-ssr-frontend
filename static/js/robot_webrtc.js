@@ -64,6 +64,9 @@ function connectWebSocket(robotId) {
         const msg = JSON.parse(e.data);
 
         switch (msg.type) {
+            case "heartbeat_check":
+                // Keepalive; no client action required.
+                break;
             case "robot_offer":
                 await handleOffer(msg.offer);
                 break;

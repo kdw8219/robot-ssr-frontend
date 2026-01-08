@@ -108,6 +108,9 @@ export function pathFollow(pathId) {
 
 function handleControlMessage(msg) {
     switch (msg.type) {
+        case "heartbeat_check":
+            // Keepalive; no client action required.
+            break;
         case "control_ack":
             console.log("[RobotControl] ACK:", msg.message);
             break;
