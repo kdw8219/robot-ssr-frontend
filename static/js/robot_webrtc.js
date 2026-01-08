@@ -138,6 +138,18 @@ function createPeerConnection() {
         }
     };
 
+    pc.onicecandidateerror = (event) => {
+        console.warn(
+            "[WebRTC] ICE candidate error:",
+            {
+                errorCode: event.errorCode,
+                errorText: event.errorText,
+                url: event.url,
+                hostCandidate: event.hostCandidate,
+            }
+        );
+    };
+
     pc.oniceconnectionstatechange = () => {
         console.log("[WebRTC] ICE state:", pc.iceConnectionState);
 
@@ -170,10 +182,15 @@ function restartWebRTC() {
 
     console.warn("[WebRTC] Restarting connection…");
 
+    const robotId = localRobotId;
     disconnectWebRTC();
 
     rtcReconnectTimer = setTimeout(() => {
         rtcReconnectTimer = null;
-        startWebRTCConnection(localRobotId);
+        if (robotId) {
+            startWebRTCConnection(robotId);
+        } else {
+            console.warn("[WebRTC] Restart skipped: robot_id is null");
+        }
     }, RECONNECT_INTERVAL);
 }
