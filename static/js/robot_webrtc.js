@@ -118,7 +118,14 @@ function scheduleWsReconnect() {
 
 function createPeerConnection() {
     pc = new RTCPeerConnection({
-        iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }]
+        iceServers: [
+            {
+                urls: ["turn:172.30.32.224:3480?transport=tcp"],
+                username: "temp", // delete later
+                credential: "temp123" // delete later
+            }
+        ],
+        iceTransportPolicy: "relay"
     });
 
     pc.ontrack = (event) => {
@@ -130,6 +137,12 @@ function createPeerConnection() {
 
     pc.onicecandidate = (event) => {
         if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+            const c = event.candidate;
+            console.log("[WebRTC] ICE candidate:", {
+                candidate: c.candidate,
+                sdpMid: c.sdpMid,
+                sdpMLineIndex: c.sdpMLineIndex,
+            });
             ws.send(JSON.stringify({
                 type: "client_ice",
                 robot_id: localRobotId,
@@ -150,12 +163,20 @@ function createPeerConnection() {
         );
     };
 
+    pc.onicegatheringstatechange = () => {
+        console.log("[WebRTC] ICE gathering state:", pc.iceGatheringState);
+    };
+
     pc.oniceconnectionstatechange = () => {
         console.log("[WebRTC] ICE state:", pc.iceConnectionState);
 
         if (["disconnected", "failed"].includes(pc.iceConnectionState)) {
             restartWebRTC();
         }
+    };
+
+    pc.onconnectionstatechange = () => {
+        console.log("[WebRTC] Peer connection state:", pc.connectionState);
     };
 }
 
