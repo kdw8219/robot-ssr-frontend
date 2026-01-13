@@ -159,6 +159,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://127.0.0.1:443",
     "https://localhost:443",
     "http://robot.local:32586",
+    "https://robot.local:31140",
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
