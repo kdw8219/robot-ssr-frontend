@@ -52,6 +52,21 @@
             overflow-y: auto;
         }
 
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e6e6e6;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
         #robot-video {
             width: 100%;
             max-width: 800px;
@@ -59,6 +74,50 @@
             background: black;
             display: block;
             margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .map-meta {
+            font-size: 0.85em;
+            color: #666;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        #map-image {
+            width: 100%;
+            height: 360px;
+            object-fit: contain;
+            background: #111;
+            border-radius: 8px;
+            border: 1px solid #222;
+        }
+
+        #map-status[data-state="error"] {
+            color: #dc3545;
+        }
+
+        .map-actions button {
+            padding: 6px 10px;
+            border: 1px solid #007bff;
+            background: #fff;
+            color: #007bff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .map-actions button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .control-panel {
@@ -87,6 +146,17 @@
         .danger:hover {
             background-color: #b21f2d !important;
         }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            #robot-video,
+            #map-image {
+                height: 320px;
+            }
+        }
     </style>
 </head>
 
@@ -105,18 +175,36 @@
     </header>
 
     <main>
-        <video id="robot-video" autoplay playsinline></video>
+        <div class="dashboard">
+            <section class="card">
+                <video id="robot-video" autoplay playsinline></video>
 
-        <h3>Control Panel</h3>
+                <h3>Control Panel</h3>
 
-        <div class="control-panel">
-            <button onclick="move('forward')">Forward</button>
-            <button onclick="move('backward')">Backward</button>
-            <button onclick="move('left')">Left</button>
-            <button onclick="move('right')">Right</button>
-            <button onclick="stop()">Stop</button>
-            <button class="danger" onclick="emergencyStop()">Emergency Stop</button>
-            <button onclick="dock()">Dock</button>
+                <div class="control-panel">
+                    <button onclick="move('forward')">Forward</button>
+                    <button onclick="move('backward')">Backward</button>
+                    <button onclick="move('left')">Left</button>
+                    <button onclick="move('right')">Right</button>
+                    <button onclick="stop()">Stop</button>
+                    <button class="danger" onclick="emergencyStop()">Emergency Stop</button>
+                    <button onclick="dock()">Dock</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="map-header">
+                    <h3>SLAM Map</h3>
+                    <div class="map-actions">
+                        <button id="map-refresh-btn">Refresh</button>
+                    </div>
+                </div>
+                <div class="map-meta">
+                    <span>Last updated: <strong id="map-updated-at">-</strong></span>
+                    <span>Status: <strong id="map-status" data-state="ok">Idle</strong></span>
+                </div>
+                <img id="map-image" data-map-url="" alt="Robot SLAM Map" />
+            </section>
         </div>
     </main>
 
@@ -139,6 +227,11 @@
             startWebRTCConnection,
             disconnectWebRTC
         } from "/static/js/robot_webrtc.js";
+
+        import {
+            startMapPolling,
+            stopMapPolling
+        } from "/static/js/robot_map.js";
 
 
         /** ------------------------------
@@ -188,6 +281,7 @@
 
                 disconnectWebRTC();
                 closeControlChannel();
+                stopMapPolling();
 
                 connectButton.disabled = false;
                 connectButton.textContent = "Connect Robot";
@@ -204,6 +298,8 @@
             window.stop = stop;
             window.emergencyStop = emergencyStop;
             window.dock = dock;
+
+            startMapPolling(ROBOT_ID, { intervalMs: 5000 });
         });
     </script>
 
